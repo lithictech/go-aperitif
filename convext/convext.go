@@ -57,6 +57,11 @@ func MustParseInt(s string) int {
 	return i
 }
 
+func MustString(s string, e error) string {
+	Must(e)
+	return s
+}
+
 func SortedObjectKeys(o map[string]interface{}) []string {
 	result := make([]string, 0, len(o))
 	for k := range o {
