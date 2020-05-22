@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/labstack/echo"
-	"github.com/lithictech/aperitif/logctx"
+	"github.com/lithictech/go-aperitif/logctx"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"runtime"

@@ -1,7 +1,7 @@
 package stopwatch_test
 
 import (
-	"github.com/lithictech/aperitif/stopwatch"
+	"github.com/lithictech/go-aperitif/stopwatch"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

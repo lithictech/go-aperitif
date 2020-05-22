@@ -2,7 +2,7 @@ package parallel
 
 import (
 	"github.com/hashicorp/go-multierror"
-	"github.com/lithictech/aperitif/mariobros"
+	"github.com/lithictech/go-aperitif/mariobros"
 	"sync"
 )
 

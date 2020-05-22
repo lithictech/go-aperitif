@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/jmoiron/sqlx"
-	"github.com/lithictech/aperitif/logctx"
+	"github.com/lithictech/go-aperitif/logctx"
 	"github.com/sirupsen/logrus"
 )
 

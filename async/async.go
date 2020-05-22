@@ -1,6 +1,6 @@
 package async
 
-import "github.com/lithictech/aperitif/mariobros"
+import "github.com/lithictech/go-aperitif/mariobros"
 
 type Goer func(name string, f func())
 

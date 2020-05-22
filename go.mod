@@ -1,4 +1,4 @@
-module github.com/lithictech/aperitif
+module github.com/lithictech/go-aperitif
 
 go 1.13
 

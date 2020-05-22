@@ -2,7 +2,7 @@ package logctx_test
 
 import (
 	"context"
-	"github.com/lithictech/aperitif/logctx"
+	"github.com/lithictech/go-aperitif/logctx"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
