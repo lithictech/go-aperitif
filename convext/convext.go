@@ -33,10 +33,14 @@ func MustToObject(o interface{}) map[string]interface{} {
 	return m
 }
 
-func MustToJson(o interface{}) string {
+func MustMarshal(o interface{}) string {
 	b, err := json.MarshalIndent(o, "", "  ")
 	Must(err)
 	return string(b)
+}
+
+func MustUnmarshal(b []byte, ptr interface{}) {
+	Must(json.Unmarshal(b, ptr))
 }
 
 func MustParseBool(s string) bool {
