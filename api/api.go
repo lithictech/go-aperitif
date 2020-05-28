@@ -61,9 +61,12 @@ func New(cfg Config) *echo.Echo {
 			AllowCredentials: true,
 		}))
 	}
-	e.GET("/healthz", cfg.HealthHandler)
-	e.GET("/statusz", func(c echo.Context) error {
+	e.GET(HealthPath, cfg.HealthHandler)
+	e.GET(StatusPath, func(c echo.Context) error {
 		return c.JSON(http.StatusOK, cfg.StatusResponse)
 	})
 	return e
 }
+
+const HealthPath = "/healthz"
+const StatusPath = "/statusz"

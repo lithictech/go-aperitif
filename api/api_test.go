@@ -105,6 +105,38 @@ var _ = Describe("API", func() {
 			Expect(Serve(e, GetRequest("/after-first-call"))).To(HaveResponseCode(403))
 			Expect(logHook.Entries).To(HaveLen(2))
 		})
+		It("logs normal requests at info", func() {
+			e.GET("/", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(200))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Level).To(Equal(logrus.InfoLevel))
+		})
+		It("logs 500+ at error", func() {
+			e.GET("/", func(c echo.Context) error {
+				return c.String(500, "oh")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(500))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Level).To(Equal(logrus.ErrorLevel))
+		})
+		It("logs 400 to 499 as warn", func() {
+			e.GET("/", func(c echo.Context) error {
+				return c.String(400, "client err")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(400))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Level).To(Equal(logrus.WarnLevel))
+		})
+		It("logs status and health as debug", func() {
+			logger.SetLevel(logrus.DebugLevel)
+			Expect(Serve(e, GetRequest("/healthz"))).To(HaveResponseCode(200))
+			Expect(Serve(e, GetRequest("/statusz"))).To(HaveResponseCode(200))
+			Expect(logHook.Entries).To(HaveLen(2))
+			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
+			Expect(logHook.Entries[1].Level).To(Equal(logrus.DebugLevel))
+		})
 	})
 
 	Describe("error handling", func() {

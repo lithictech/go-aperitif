@@ -88,6 +88,8 @@ func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
 				logMethod = logger.Error
 			} else if res.Status >= 400 {
 				logMethod = logger.Warn
+			} else if req.URL.Path == HealthPath || req.URL.Path == StatusPath {
+				logMethod = logger.Debug
 			}
 			logMethod("request_finished")
 
