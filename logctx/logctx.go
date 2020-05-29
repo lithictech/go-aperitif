@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
+	"os"
 )
 
 const LoggerKey = "logger"
@@ -94,4 +96,66 @@ func AddFields(c context.Context, fields map[string]interface{}) context.Context
 
 func AddField(c context.Context, key string, value interface{}) context.Context {
 	return AddFields(c, map[string]interface{}{key: value})
+}
+
+type NewLoggerInput struct {
+	Level     string
+	Format    string
+	File      string
+	BuildSha  string
+	BuildTime string
+	Fields    logrus.Fields
+}
+
+func NewLogger(cfg NewLoggerInput) (*logrus.Entry, error) {
+	logger := logrus.New()
+
+	// Parse and set level
+	lvl, err := logrus.ParseLevel(cfg.Level)
+	if err != nil {
+		return nil, err
+	}
+	logger.SetLevel(lvl)
+
+	// Set format
+	if cfg.Format == "json" {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	} else if cfg.Format == "text" {
+		logger.SetFormatter(&logrus.TextFormatter{})
+	} else if cfg.File != "" {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	} else if IsTty() {
+		logger.SetFormatter(&logrus.TextFormatter{})
+	} else {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	}
+
+	// Set output to file or stdout/stderr (stderr for tty, stdout otherwise like for 12 factor apps)
+	if cfg.File != "" {
+		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+		logger.SetOutput(file)
+	} else if IsTty() {
+		logger.SetOutput(os.Stderr)
+	} else {
+		logger.SetOutput(os.Stdout)
+	}
+
+	entry := logger.WithFields(nil)
+	if len(cfg.Fields) > 0 {
+		entry = logger.WithFields(cfg.Fields)
+	}
+	if cfg.BuildSha != "" {
+		entry = entry.WithField("build_sha", cfg.BuildSha)
+	}
+	if cfg.BuildTime != "" {
+		entry = entry.WithField("build_time", cfg.BuildTime)
+	}
+	return entry, nil
+}
+
+func IsTty() bool {
+	return terminal.IsTerminal(int(os.Stdout.Fd()))
 }
