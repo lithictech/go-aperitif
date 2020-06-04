@@ -70,6 +70,16 @@ func BetweenDatesEach(start, end time.Time, y, m, d int, each func(time.Time)) {
 	}
 }
 
+func Compare(t1, t2 time.Time) int {
+	if t1.Equal(t2) {
+		return 0
+	}
+	if t1.Before(t2) {
+		return -1
+	}
+	return 1
+}
+
 func makeTimeSlice(totalDuration, stepDuration int) []time.Time {
 	// if end is before start, this can be negative.
 	if totalDuration < 0 {

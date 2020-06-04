@@ -14,6 +14,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
 	github.com/rgalanakis/golangal v0.0.0-20200522193311-5ec6ee0ae5c6
+	github.com/rgalanakis/validator v0.0.0-20180731224108-4a34a8927f7c
 	github.com/sirupsen/logrus v1.6.0
 	github.com/valyala/fasttemplate v1.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2

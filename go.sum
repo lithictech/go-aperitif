@@ -73,6 +73,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rgalanakis/golangal v0.0.0-20200522193311-5ec6ee0ae5c6 h1:r/wIfHGpTqw5JPB8LZ4Ybnw8YpkQRbHSpvn1HotxzzI=
 github.com/rgalanakis/golangal v0.0.0-20200522193311-5ec6ee0ae5c6/go.mod h1:W3jmEupTh+GFtlzTxWHH9E3OKOgkTmr5I9sTttx3164=
+github.com/rgalanakis/validator v0.0.0-20180731224108-4a34a8927f7c h1:z1J+SUwpje5zEyPfHBIv6N++OxjETBV5wGBwkmO/Wzk=
+github.com/rgalanakis/validator v0.0.0-20180731224108-4a34a8927f7c/go.mod h1:qIw2dAd/4wMHHnINySB5+y9HPKQXUKmga0oZHSluPKE=
 github.com/sirupsen/logrus v1.6.0 h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
