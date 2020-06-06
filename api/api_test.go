@@ -137,6 +137,12 @@ var _ = Describe("API", func() {
 			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
 			Expect(logHook.Entries[1].Level).To(Equal(logrus.DebugLevel))
 		})
+		It("logs options as debug", func() {
+			logger.SetLevel(logrus.DebugLevel)
+			Expect(Serve(e, NewRequest("OPTIONS", "/foo", nil))).To(HaveResponseCode(404))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
+		})
 	})
 
 	Describe("error handling", func() {

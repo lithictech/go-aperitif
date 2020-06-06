@@ -84,7 +84,9 @@ func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
 			}
 
 			logMethod := logger.Info
-			if res.Status >= 500 {
+			if req.Method == http.MethodOptions {
+				logMethod = logger.Debug
+			} else if res.Status >= 500 {
 				logMethod = logger.Error
 			} else if res.Status >= 400 {
 				logMethod = logger.Warn
