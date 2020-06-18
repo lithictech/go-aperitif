@@ -160,8 +160,15 @@ func (b binder) setFromHeaders() HTTPError {
 // Set struct fields from the URL query parameters.
 func (b binder) setFromQueryParams() HTTPError {
 	for k, values := range b.req.URL.Query() {
+		key := k
+		// Convention for array query params is key[]=val1&key[]=val2, which will be key: {val1, val2}
+		// when parsed by Go. Remove the trailing []. We do this safely, if anyone is actually depending on
+		// "[]" as part of a meaningful JSON key, they probably have a use case outside of apiparams.
+		if strings.HasSuffix(key, "[]") {
+			key = strings.TrimSuffix(key, "[]")
+		}
 		for _, v := range values {
-			if err := b.setField(k, v, ParamSourceQuery); err != nil {
+			if err := b.setField(key, v, ParamSourceQuery); err != nil {
 				return err
 			}
 		}

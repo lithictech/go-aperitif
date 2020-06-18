@@ -110,6 +110,25 @@ var _ = Describe("apiparams package", func() {
 			Expect(resp).To(HaveResponseCode(200))
 		})
 
+		It("to array query parameters", func() {
+			type handlerParams struct {
+				Strings []string `json:"strings"`
+				Ints    []int    `json:"ints"`
+			}
+			group.GET(
+				"/foo",
+				func(c echo.Context) error {
+					hp := handlerParams{}
+					Expect(apiparams.BindAndValidate(ad, &hp, c)).To(Succeed())
+					Expect(hp.Strings).To(BeEquivalentTo([]string{"x", "y"}))
+					Expect(hp.Ints).To(BeEquivalentTo([]int{1, 2}))
+					return c.JSON(http.StatusOK, 1)
+				},
+			)
+			resp := Serve(e, GetRequest("/foo?strings[]=x&strings[]=y&ints[]=1&ints[]=2"))
+			Expect(resp).To(HaveResponseCode(200))
+		})
+
 		It("to multiple occurances of the same query parameter", func() {
 			type handlerParams struct {
 				Tags []string `json:"tag"`
