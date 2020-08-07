@@ -89,6 +89,14 @@ var _ = Describe("API", func() {
 			Expect(rr).To(HaveResponseCode(200))
 			Expect(rr).To(HaveHeader("TRACE-ID", Not(BeEmpty())))
 		})
+
+		It("will use an existing X-Request-Id and copy it into Trace-Id", func() {
+			req := GetRequest("/healthz")
+			req.Header.Set("X-Request-ID", "abcd")
+			rr := Serve(e, req)
+			Expect(rr).To(HaveResponseCode(200))
+			Expect(rr).To(HaveHeader("TRACE-ID", Equal("abcd")))
+		})
 	})
 
 	Describe("logging", func() {
