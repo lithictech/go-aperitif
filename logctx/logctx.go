@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"golang.org/x/crypto/ssh/terminal"
 	"os"
 )
@@ -158,4 +159,16 @@ func NewLogger(cfg NewLoggerInput) (*logrus.Entry, error) {
 
 func IsTty() bool {
 	return terminal.IsTerminal(int(os.Stdout.Fd()))
+}
+
+// WithNullLogger adds the logger from test.NewNullLogger into the given context
+// (default c to context.Background). Use the hook to get the log messages.
+// See https://github.com/sirupsen/logrus#testing for testing with logrus.
+func WithNullLogger(c context.Context) (context.Context, *test.Hook) {
+	if c == nil {
+		c = context.Background()
+	}
+	logger, hook := test.NewNullLogger()
+	c2 := WithLogger(c, logger.WithField("testlogger", true))
+	return c2, hook
 }

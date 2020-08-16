@@ -96,4 +96,13 @@ var _ = Describe("logtools", func() {
 			Expect(logger).To(BeIdenticalTo(logctx.Logger(c)))
 		})
 	})
+
+	Describe("WithNullLogger", func() {
+		It("inserts the null logger", func() {
+			c, hook := logctx.WithNullLogger(nil)
+			logctx.Logger(c).Info("hi")
+			Expect(hook.Entries).To(HaveLen(1))
+			Expect(hook.LastEntry().Message).To(Equal("hi"))
+		})
+	})
 })
