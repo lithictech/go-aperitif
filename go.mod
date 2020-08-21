@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
-	github.com/rgalanakis/golangal v0.0.0-20200522193311-5ec6ee0ae5c6
+	github.com/rgalanakis/golangal v0.0.0-20200710064529-eb44ace1b187
 	github.com/rgalanakis/validator v0.0.0-20180731224108-4a34a8927f7c
 	github.com/sirupsen/logrus v1.6.0
 	github.com/valyala/fasttemplate v1.1.0 // indirect
