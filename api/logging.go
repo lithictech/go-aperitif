@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/labstack/echo"
+	"github.com/lithictech/go-aperitif/api/apiparams"
 	"github.com/lithictech/go-aperitif/logctx"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -135,6 +136,11 @@ func adaptToError(e error) error {
 	if ee, ok := e.(*echo.HTTPError); ok {
 		apiErr := NewError(ee.Code, "echo", ee.Internal)
 		apiErr.Message = fmt.Sprintf("%v", ee.Message)
+		return apiErr
+	}
+	if ae, ok := e.(apiparams.HTTPError); ok {
+		apiErr := NewError(ae.Code(), "validation", ae)
+		apiErr.Message = ae.Error()
 		return apiErr
 	}
 	return NewInternalError(e)

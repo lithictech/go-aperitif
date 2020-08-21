@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/labstack/echo"
 	"github.com/lithictech/go-aperitif/api"
+	"github.com/lithictech/go-aperitif/api/apiparams"
 	. "github.com/lithictech/go-aperitif/api/echoapitest"
 	. "github.com/lithictech/go-aperitif/apitest"
 	"github.com/lithictech/go-aperitif/logctx"
@@ -202,6 +203,18 @@ var _ = Describe("API", func() {
 			Expect(rr).To(HaveJsonBody(And(
 				HaveKeyWithValue("http_status", BeEquivalentTo(428)),
 				HaveKeyWithValue("message", BeEquivalentTo("echo msg")),
+			)))
+		})
+		It("adapts apiparams errors", func() {
+			e.GET("/test", func(c echo.Context) error {
+				return apiparams.NewHTTPError(428, "apiparams msg")
+			})
+			req := GetRequest("/test")
+			rr := Serve(e, req)
+			Expect(rr).To(HaveResponseCode(428))
+			Expect(rr).To(HaveJsonBody(And(
+				HaveKeyWithValue("http_status", BeEquivalentTo(428)),
+				HaveKeyWithValue("message", BeEquivalentTo("apiparams msg")),
 			)))
 		})
 	})
