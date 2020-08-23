@@ -63,6 +63,10 @@ func (b binder) setFromJSONBody() HTTPError {
 	if b.req.ContentLength == 0 {
 		return nil
 	}
+	// Always parse the form; it's safe and idempotent.
+	if err := b.req.ParseForm(); err != nil {
+		return NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to parse form: %s", err.Error()))
+	}
 	ctype := b.req.Header.Get("Content-Type")
 	switch {
 	case strings.HasPrefix(ctype, "application/json"):
@@ -71,6 +75,9 @@ func (b binder) setFromJSONBody() HTTPError {
 			return NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		return b.decodeJSON(body)
+	case ctype == "application/x-www-form-urlencoded":
+		// Handled by ParseForm.
+		return nil
 	default:
 		return NewHTTPError(http.StatusUnsupportedMediaType, "")
 	}

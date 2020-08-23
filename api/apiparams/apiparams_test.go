@@ -383,6 +383,29 @@ var _ = Describe("apiparams package", func() {
 					}))
 			Expect(resp).To(HaveResponseCode(200))
 		})
+
+		It("parses the form", func() {
+			type handlerParams struct {
+				FormTag int `form:"formTag"`
+				JSONTag int `json:"jsonTag"`
+			}
+			group.POST(
+				"/foo",
+				func(c echo.Context) error {
+					hp := handlerParams{}
+					Expect(apiparams.BindAndValidate(ad, &hp, c)).To(Succeed())
+					Expect(hp.FormTag).To(BeEquivalentTo(123))
+					Expect(hp.JSONTag).To(BeEquivalentTo(456))
+					return c.JSON(http.StatusOK, 1)
+				},
+			)
+			resp := Serve(e,
+				NewRequest("POST",
+					"/foo",
+					[]byte("formTag=123&jsonTag=456"),
+					SetReqHeader("Content-Type", "application/x-www-form-urlencoded")))
+			Expect(resp).To(HaveResponseCode(200))
+		})
 	})
 
 	Describe("defaults", func() {
