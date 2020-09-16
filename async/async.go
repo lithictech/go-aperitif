@@ -15,3 +15,19 @@ func Async(name string, f func()) {
 		f()
 	}()
 }
+
+func NewSpying(g Goer) *Spying {
+	return &Spying{goer: g, CallCount: 0}
+}
+
+type Spying struct {
+	goer      Goer
+	CallCount int
+	Calls     []string
+}
+
+func (s *Spying) Go(name string, f func()) {
+	s.CallCount++
+	s.Calls = append(s.Calls, name)
+	f()
+}
