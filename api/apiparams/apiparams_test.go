@@ -822,11 +822,25 @@ var _ = Describe("apiparams package", func() {
 			},
 		})
 
+		type MyString string
+
+		apiparams.RegisterCustomType(apiparams.CustomTypeDef{
+			Value: MyString(""),
+			Parser: func(v string, usePtr bool) (reflect.Value, error) {
+				s := MyString(v)
+				if usePtr {
+					return reflect.ValueOf(&s), nil
+				}
+				return reflect.ValueOf(s), nil
+			},
+		})
+
 		It("can get defaults", func() {
 			type handlerParams struct {
 				UnixTime          UnixTime    `default:"20"`
 				IntOrStringInt    IntOrString `default:"20"`
 				IntOrStringString IntOrString `default:"abc"`
+				MyString          MyString    `default:"abc"`
 			}
 
 			group.POST(
@@ -837,6 +851,7 @@ var _ = Describe("apiparams package", func() {
 					Expect(time.Time(hp.UnixTime)).To(Equal(time.Unix(40, 0)))
 					Expect(hp.IntOrStringInt.Int).To(Equal(20))
 					Expect(hp.IntOrStringString.Str).To(Equal("abc"))
+					Expect(hp.MyString).To(Equal(MyString("abc")))
 					return c.JSON(http.StatusOK, 1)
 				},
 			)
@@ -850,6 +865,8 @@ var _ = Describe("apiparams package", func() {
 				UnixTimePtr    *UnixTime    `query:"unixTimePtr"`
 				IntOrString    IntOrString  `query:"intOrStr"`
 				IntOrStringPtr *IntOrString `query:"intOrStrPtr"`
+				MyString       MyString     `query:"myStr"`
+				MyStringPtr    *MyString    `query:"myStrPtr"`
 			}
 
 			group.POST(
@@ -865,10 +882,13 @@ var _ = Describe("apiparams package", func() {
 					Expect(hp.IntOrString.Str).To(Equal("hi"))
 					Expect(hp.IntOrStringPtr).To(Not(BeNil()))
 					Expect(hp.IntOrStringPtr.Int).To(Equal(20))
+
+					Expect(hp.MyString).To(Equal(MyString("x")))
+					Expect(*hp.MyStringPtr).To(Equal(MyString("y")))
 					return c.JSON(http.StatusOK, 1)
 				},
 			)
-			query := "unixTime=50&unixTimePtr=60&intOrStr=hi&intOrStrPtr=20"
+			query := "unixTime=50&unixTimePtr=60&intOrStr=hi&intOrStrPtr=20&myStr=x&myStrPtr=y"
 			resp := Serve(e, NewRequest("POST", "/foo?"+query, []byte("{}"), JsonReq()))
 			Expect(resp).To(HaveResponseCode(200))
 		})

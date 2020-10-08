@@ -224,6 +224,10 @@ func (r reflector) parseValue(t reflect.Type, field reflect.Value, value string)
 		fieldValueType = t.Elem()
 		isPtr = true
 	}
+	if p := r.typeParsers[fieldValueType]; p != nil {
+		return p(value, isPtr)
+	}
+
 	fieldValueKind := fieldValueType.Kind()
 
 	switch fieldValueKind {
@@ -315,10 +319,6 @@ func (r reflector) parseValue(t reflect.Type, field reflect.Value, value string)
 			}
 			return newSliceVal, nil
 		}
-	}
-
-	if p := r.typeParsers[fieldValueType]; p != nil {
-		return p(value, isPtr)
 	}
 
 	panicUnsupportedType(t)
