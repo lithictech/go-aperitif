@@ -61,7 +61,7 @@ func (r reflector) FieldFor(fd reflect.StructField) reflect.Value {
 	return r.underlyingValue.FieldByName(fd.Name)
 }
 
-// Convert a field name string ("Foo") or path ("Foo.Bar" or "Foo[0].Bar")
+// MapFieldNameToParamName convert a field name string ("Foo") or path ("Foo.Bar" or "Foo[0].Bar")
 // to a parameter name string ("foo", "foo.bar", "foo[0].bar",
 // whatever was set up in struct tags).
 func (r reflector) MapFieldNameToParamName(fieldName string) string {

@@ -13,16 +13,16 @@ const LoggerKey = "logger"
 
 type TraceIdKey string
 
-// Trace ID key for requests.
+// RequestTraceIdKey is the trace ID key for requests.
 const RequestTraceIdKey TraceIdKey = "trace_id"
 
-// Trace ID key for when we run jobs in the background, like cron jobs.
+// JobTraceIdKey is the trace ID key for when we run jobs in the background, like cron jobs.
 const JobTraceIdKey TraceIdKey = "job_trace_id"
 
-// Trace ID key for the overall process.
+// ProcessTraceIdKey is the trace ID key for the overall process.
 const ProcessTraceIdKey TraceIdKey = "process_trace_id"
 
-// Trace ID key that will be present to indicate something is misconfigured.
+// MissingTraceIdKey is the key that will be present to indicate tracing is misconfigured.
 const MissingTraceIdKey TraceIdKey = "missing_trace_id"
 
 func unconfiguredLogger() *logrus.Entry {

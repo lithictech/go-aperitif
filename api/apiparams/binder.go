@@ -32,7 +32,7 @@ func (b binder) RegisterDefaulter(t reflect.Type, d Defaulter) {
 	b.typeDefaulters[t] = d
 }
 
-// Fill in the struct instance from defaults, the JSON body, query params, and path params.
+// BindFromAll fills in the struct instance from defaults, the JSON body, query params, and path params.
 func (b binder) BindFromAll() HTTPError {
 	if err := b.setFromDefaults(b.reflector.Underlying()); err != nil {
 		return err

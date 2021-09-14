@@ -1,4 +1,4 @@
-// Package jwt wraps github.com/dgrijalva/jwt-go
+// Package jwtee wraps github.com/dgrijalva/jwt-go
 // with some tooling that makes it easier to use
 // in most practical usage.
 package jwtee

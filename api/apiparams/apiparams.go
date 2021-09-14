@@ -38,7 +38,7 @@ type Handler struct {
 	binder    binder
 }
 
-// Create a new Handler.
+// New returns a new Handler.
 // In general, callers should use apiparams.BindAndValidate,
 // rather than dealing with Handler explicitly,
 // but it is provided here in case callers only want binding or validating for some reason.
@@ -53,7 +53,7 @@ func New(adapter Adapter, paramsStructPtr interface{}, handlerArgs ...interface{
 	return ph
 }
 
-// Fill in the struct instance from defaults, the JSON body, query params, and path params.
+// BindFromAll fills in the struct instance from defaults, the JSON body, query params, and path params.
 func (ph Handler) BindFromAll() HTTPError {
 	return ph.binder.BindFromAll()
 }
