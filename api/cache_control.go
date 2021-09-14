@@ -15,7 +15,7 @@ func WithCacheControl(enabled bool, value string) echo.MiddlewareFunc {
 	}
 }
 
-// CacheControl sets the Cache-Control header to the given value,
+// SetCacheControl sets the Cache-Control header to the given value,
 // if it was configured in WithCacheControl.
 // Because response headers must be written before the body is written,
 // we cannot handle this like normal middleware, and write the header after handling the call.

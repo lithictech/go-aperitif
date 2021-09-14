@@ -1,6 +1,6 @@
 package stringutil
 
-// MapStr applies f to each string in in.
+// Map applies f to each string in in.
 func Map(in []string, f func(string) string) []string {
 	res := make([]string, 0, len(in))
 	for _, s := range in {
@@ -9,7 +9,7 @@ func Map(in []string, f func(string) string) []string {
 	return res
 }
 
-// ContainsStr returns true if in contains element,
+// Contains returns true if in contains element,
 // false if not.
 func Contains(in []string, element string) bool {
 	for _, a := range in {
