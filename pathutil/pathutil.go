@@ -1,4 +1,4 @@
-package pathutils
+package pathutil
 
 import (
 	"encoding/json"
