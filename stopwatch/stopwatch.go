@@ -20,30 +20,84 @@ type Stopwatch struct {
 	logger    *logrus.Entry
 }
 
-func Start(logger *logrus.Entry, operation string) *Stopwatch {
+type StartOpts struct {
+	Key   string
+	Level logrus.Level
+}
+
+func StartWith(logger *logrus.Entry, operation string, opts StartOpts) *Stopwatch {
+	if opts.Key == "" {
+		opts.Key = "_started"
+	}
+	if opts.Level == 0 {
+		opts.Level = logrus.DebugLevel
+	}
 	sw := &Stopwatch{
 		start:     time.Now(),
 		operation: operation,
 		logger:    logger,
 	}
 
-	sw.logger.Debug(operation + "_started")
+	sw.logger.Log(opts.Level, operation+opts.Key)
 	return sw
 }
 
+func Start(logger *logrus.Entry, operation string) *Stopwatch {
+	return StartWith(logger, operation, StartOpts{})
+}
+
 type FinishOpts struct {
-	Logger *logrus.Entry
+	Logger       *logrus.Entry
+	Key          string
+	ElapsedKey   string
+	Milliseconds bool
+	Level        logrus.Level
 }
 
 func (sw *Stopwatch) FinishWith(opts FinishOpts) {
-	logger := sw.logger
-	if opts.Logger != nil {
-		logger = opts.Logger
+	if opts.Key == "" {
+		opts.Key = "_finished"
 	}
-	logger = logger.WithField("elapsed", time.Since(sw.start).Seconds())
-	logger.Info(sw.operation + "_finished")
+	if opts.ElapsedKey == "" {
+		opts.ElapsedKey = "elapsed"
+	}
+	if opts.Level == 0 {
+		opts.Level = logrus.InfoLevel
+	}
+	if opts.Logger == nil {
+		opts.Logger = sw.logger
+	}
+	logger := opts.Logger
+	if opts.Milliseconds {
+		logger = logger.WithField(opts.ElapsedKey, time.Since(sw.start).Milliseconds())
+	} else {
+		logger = logger.WithField(opts.ElapsedKey, time.Since(sw.start).Seconds())
+	}
+	logger.Log(opts.Level, sw.operation+opts.Key)
 }
 
 func (sw *Stopwatch) Finish() {
 	sw.FinishWith(FinishOpts{})
+}
+
+type LapOpts FinishOpts
+
+func (sw *Stopwatch) LapWith(opts LapOpts) {
+	if opts.Key == "" {
+		opts.Key = "_lap"
+	}
+	if opts.ElapsedKey == "" {
+		opts.ElapsedKey = "elapsed"
+	}
+	if opts.Level == 0 {
+		opts.Level = logrus.InfoLevel
+	}
+	if opts.Logger == nil {
+		opts.Logger = sw.logger
+	}
+	sw.FinishWith(FinishOpts(opts))
+}
+
+func (sw *Stopwatch) Lap() {
+	sw.LapWith(LapOpts{})
 }
