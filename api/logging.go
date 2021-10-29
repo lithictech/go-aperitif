@@ -146,20 +146,30 @@ func adaptToError(e error) error {
 	return NewInternalError(e)
 }
 
-// HTTPErrorHandler is a custom error handler, at this point we should always have an api.Error
-// because it's been adapted by the logging middleware.
-func HTTPErrorHandler(e error, c echo.Context) {
-	apiErr := e.(Error)
-	// This is copied from echo's default error handler.
-	if !c.Response().Committed {
-		var err error
-		if c.Request().Method == http.MethodHead {
-			err = c.NoContent(apiErr.HTTPStatus)
-		} else {
-			err = c.JSON(apiErr.HTTPStatus, apiErr)
+// Deprecated: Use NewHTTPErrorHandler instead.
+func HTTPErrorHandler(err error, c echo.Context) {
+	e := echo.New()
+	NewHTTPErrorHandler(e)(err, c)
+}
+
+func NewHTTPErrorHandler(e *echo.Echo) echo.HTTPErrorHandler {
+	return func(err error, c echo.Context) {
+		apiErr, ok := err.(Error)
+		if !ok {
+			e.DefaultHTTPErrorHandler(err, c)
+			return
 		}
-		if err != nil {
-			Logger(c).WithField("error", err).Error("http_error_handler_error")
+		// This is copied from echo's default error handler.
+		if !c.Response().Committed {
+			var err error
+			if c.Request().Method == http.MethodHead {
+				err = c.NoContent(apiErr.HTTPStatus)
+			} else {
+				err = c.JSON(apiErr.HTTPStatus, apiErr)
+			}
+			if err != nil {
+				Logger(c).WithField("error", err).Error("http_error_handler_error")
+			}
 		}
 	}
 }

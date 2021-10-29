@@ -53,7 +53,7 @@ func New(cfg Config) *echo.Echo {
 	e := echo.New()
 	e.Logger.SetOutput(os.Stdout)
 	e.HideBanner = true
-	e.HTTPErrorHandler = HTTPErrorHandler
+	e.HTTPErrorHandler = NewHTTPErrorHandler(e)
 	e.Use(LoggingMiddleware(cfg.Logger))
 	if cfg.CorsOrigins != nil {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
