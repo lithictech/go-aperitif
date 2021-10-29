@@ -258,4 +258,47 @@ var _ = Describe("API", func() {
 			Expect(resp.Header().Get("Cache-Control")).To(BeEmpty())
 		})
 	})
+
+	Describe("DebugMiddleware", func() {
+		BeforeEach(func() {
+			logger.SetLevel(logrus.DebugLevel)
+		})
+		It("noops if not enabled", func() {
+			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: false, DumpResponseBody: true}))
+			e.GET("/foo", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Serve(e, NewRequest("POST", "/endpoint", nil))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Message).To(Equal("request_finished"))
+		})
+		It("dumps what is enabled", func() {
+			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: true, DumpResponseBody: true, DumpResponseHeaders: true}))
+			e.GET("/endpoint", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Serve(e, NewRequest("GET", "/endpoint", nil))
+			Expect(logHook.Entries).To(HaveLen(2))
+			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[0].Data).To(And(
+				HaveKeyWithValue("debug_response_headers", HaveKey("Content-Type")),
+				HaveKeyWithValue("debug_response_body", ContainSubstring("ok")),
+			))
+		})
+		It("can dump everything", func() {
+			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: true, DumpAll: true}))
+			e.GET("/endpoint", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
+			Expect(logHook.Entries).To(HaveLen(2))
+			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[0].Data).To(And(
+				HaveKeyWithValue("debug_request_headers", HaveKey("Foo")),
+				HaveKeyWithValue("debug_response_headers", HaveKey("Content-Type")),
+				HaveKeyWithValue("debug_request_body", ""),
+				HaveKeyWithValue("debug_response_body", ContainSubstring("ok")),
+			))
+		})
+	})
 })
