@@ -346,5 +346,20 @@ var _ = Describe("API", func() {
 				HaveKeyWithValue("debug_response_body", ContainSubstring("ok")),
 			))
 		})
+		It("can print memory stats every n requests", func() {
+			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: true, DumpMemoryEvery: 2}))
+			e.GET("/endpoint", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
+			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
+			Expect(logHook.Entries).To(HaveLen(4))
+			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[0].Data).ToNot(HaveKey("memory_sys"))
+			Expect(logHook.Entries[1].Message).To(Equal("request_finished"))
+			Expect(logHook.Entries[2].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[2].Data).To(HaveKey("memory_sys"))
+			Expect(logHook.Entries[3].Message).To(Equal("request_finished"))
+		})
 	})
 })
