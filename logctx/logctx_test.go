@@ -30,6 +30,7 @@ var _ = Describe("logtools", func() {
 			key, val := logctx.ActiveTraceId(c)
 			Expect(key).To(Equal(logctx.RequestTraceIdKey))
 			Expect(val).To(Equal("abc"))
+			Expect(logctx.ActiveTraceIdValue(c)).To(Equal("abc"))
 		})
 		It("returns a process trace id", func() {
 			c := context.WithValue(bg, logctx.ProcessTraceIdKey, "abc")
