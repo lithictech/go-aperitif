@@ -29,7 +29,31 @@ func SetLogger(c echo.Context, logger *logrus.Entry) {
 	c.Set(logctx.LoggerKey, logger)
 }
 
+type LoggingMiddlwareConfig struct {
+	// If true, log request headers.
+	RequestHeaders bool
+	// If true, log response headers.
+	ResponseHeaders bool
+	// If provided, the returned logger is stored in the context
+	// which is eventually passed to the handler.
+	// Use to add additional fields to the logger based on the request.
+	BeforeRequest func(echo.Context, *logrus.Entry) *logrus.Entry
+	// If provided, the returned logger is used for response logging.
+	// Use to add additional fields to the logger based on the request or response.
+	AfterRequest func(echo.Context, *logrus.Entry) *logrus.Entry
+	// The function that does the actual logging.
+	// By default, it will log at a certain level based on the status code of the response.
+	DoLog func(echo.Context, *logrus.Entry)
+}
+
 func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
+	return LoggingMiddlewareWithConfig(outerLogger, LoggingMiddlwareConfig{})
+}
+
+func LoggingMiddlewareWithConfig(outerLogger *logrus.Entry, cfg LoggingMiddlwareConfig) echo.MiddlewareFunc {
+	if cfg.DoLog == nil {
+		cfg.DoLog = LoggingMiddlewareDefaultDoLog
+	}
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
@@ -57,11 +81,16 @@ func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
 				"request_bytes_in":               bytesIn,
 				string(logctx.RequestTraceIdKey): TraceId(c),
 			})
-			//for k, v := range req.Header {
-			//	if len(v) > 0 && k != "Authorization" && k != "Cookie" {
-			//		logger = logger.WithField("header."+k, v[0])
-			//	}
-			//}
+			if cfg.RequestHeaders {
+				for k, v := range req.Header {
+					if len(v) > 0 && k != "Authorization" && k != "Cookie" {
+						logger = logger.WithField("request_header."+k, v[0])
+					}
+				}
+			}
+			if cfg.BeforeRequest != nil {
+				logger = cfg.BeforeRequest(c, logger)
+			}
 
 			SetLogger(c, logger)
 
@@ -80,26 +109,40 @@ func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
 				"request_latency_ms":  int(stop.Sub(start)) / 1000 / 1000,
 				"request_bytes_out":   strconv.FormatInt(res.Size, 10),
 			})
+			if cfg.ResponseHeaders {
+				for k, v := range res.Header() {
+					if len(v) > 0 && k != "Set-Cookie" {
+						logger = logger.WithField("response_header."+k, v[0])
+					}
+				}
+			}
 			if err != nil {
 				logger = logger.WithField("request_error", err)
 			}
-
-			logMethod := logger.Info
-			if req.Method == http.MethodOptions {
-				logMethod = logger.Debug
-			} else if res.Status >= 500 {
-				logMethod = logger.Error
-			} else if res.Status >= 400 {
-				logMethod = logger.Warn
-			} else if req.URL.Path == HealthPath || req.URL.Path == StatusPath {
-				logMethod = logger.Debug
+			if cfg.BeforeRequest != nil {
+				logger = cfg.AfterRequest(c, logger)
 			}
-			logMethod("request_finished")
-
+			cfg.DoLog(c, logger)
 			// c.Error is already called
 			return nil
 		}
 	}
+}
+
+func LoggingMiddlewareDefaultDoLog(c echo.Context, logger *logrus.Entry) {
+	req := c.Request()
+	res := c.Response()
+	logMethod := logger.Info
+	if req.Method == http.MethodOptions {
+		logMethod = logger.Debug
+	} else if res.Status >= 500 {
+		logMethod = logger.Error
+	} else if res.Status >= 400 {
+		logMethod = logger.Warn
+	} else if req.URL.Path == HealthPath || req.URL.Path == StatusPath {
+		logMethod = logger.Debug
+	}
+	logMethod("request_finished")
 }
 
 // Invoke next(c) within a function wrapped with defer,

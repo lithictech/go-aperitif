@@ -5,6 +5,8 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/lithictech/go-aperitif/logctx"
 	"net/http"
+	"runtime"
+	"sync/atomic"
 )
 
 type DebugMiddlewareConfig struct {
@@ -14,6 +16,9 @@ type DebugMiddlewareConfig struct {
 	DumpRequestHeaders  bool
 	DumpResponseHeaders bool
 	DumpAll             bool
+	// Log out memory stats every 'n' requests.
+	// If <= 0, do not log them.
+	DumpMemoryEvery int
 }
 
 func DebugMiddleware(cfg DebugMiddlewareConfig) echo.MiddlewareFunc {
@@ -30,7 +35,10 @@ func DebugMiddleware(cfg DebugMiddlewareConfig) echo.MiddlewareFunc {
 		cfg.DumpResponseHeaders = true
 		cfg.DumpResponseBody = true
 	}
+	var requestCounter uint64
+	dumpEveryUint := uint64(cfg.DumpMemoryEvery)
 	bd := middleware.BodyDump(func(c echo.Context, reqBody []byte, resBody []byte) {
+		atomic.AddUint64(&requestCounter, 1)
 		log := logctx.Logger(StdContext(c))
 		if cfg.DumpRequestBody {
 			log = log.WithField("debug_request_body", string(reqBody))
@@ -43,6 +51,30 @@ func DebugMiddleware(cfg DebugMiddlewareConfig) echo.MiddlewareFunc {
 		}
 		if cfg.DumpResponseHeaders {
 			log = log.WithField("debug_response_headers", headerToMap(c.Response().Header()))
+		}
+		if cfg.DumpMemoryEvery > 0 && (requestCounter%dumpEveryUint) == 0 {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			log = log.WithFields(map[string]interface{}{
+				"memory_alloc":          ms.Alloc,
+				"memory_total_alloc":    ms.TotalAlloc,
+				"memory_sys":            ms.Sys,
+				"memory_mallocs":        ms.Mallocs,
+				"memory_frees":          ms.Frees,
+				"memory_heap_alloc":     ms.HeapAlloc,
+				"memory_heap_sys":       ms.HeapSys,
+				"memory_heap_idle":      ms.HeapIdle,
+				"memory_heap_inuse":     ms.HeapInuse,
+				"memory_heap_released":  ms.HeapReleased,
+				"memory_heap_objects":   ms.HeapObjects,
+				"memory_stack_inuse":    ms.StackInuse,
+				"memory_stack_sys":      ms.StackSys,
+				"memory_other_sys":      ms.OtherSys,
+				"memory_next_gc":        ms.NextGC,
+				"memory_last_gc":        ms.LastGC,
+				"memory_pause_total_ns": ms.PauseTotalNs,
+				"memory_num_gc":         ms.NumGC,
+			})
 		}
 		log.Debug("request_debug")
 	})

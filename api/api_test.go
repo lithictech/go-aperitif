@@ -152,6 +152,52 @@ var _ = Describe("API", func() {
 			Expect(logHook.Entries).To(HaveLen(1))
 			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
 		})
+		It("can log request and response headers", func() {
+			e = api.New(api.Config{
+				Logger: logEntry,
+				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
+					RequestHeaders:  true,
+					ResponseHeaders: true,
+				},
+			})
+			e.GET("/", func(c echo.Context) error {
+				c.Response().Header().Set("ResHead", "ResHeadVal")
+				return c.String(200, "ok")
+			})
+			Expect(Serve(e, GetRequest("/", SetReqHeader("ReqHead", "ReqHeadVal")))).To(HaveResponseCode(200))
+			Expect(logHook.Entries).To(HaveLen(1))
+			Expect(logHook.Entries[0].Data).To(And(
+				HaveKeyWithValue("request_header.Reqhead", "ReqHeadVal"),
+				HaveKeyWithValue("response_header.Reshead", "ResHeadVal"),
+			))
+		})
+		It("can use custom DoLog, BeforeRequest, and AfterRequest hooks", func() {
+			doLogCalled := false
+			e = api.New(api.Config{
+				Logger: logEntry,
+				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
+					BeforeRequest: func(_ echo.Context, e *logrus.Entry) *logrus.Entry {
+						return e.WithField("before", 1)
+					},
+					AfterRequest: func(_ echo.Context, e *logrus.Entry) *logrus.Entry {
+						return e.WithField("after", 2)
+					},
+					DoLog: func(c echo.Context, e *logrus.Entry) {
+						doLogCalled = true
+						api.LoggingMiddlewareDefaultDoLog(c, e)
+					},
+				},
+			})
+			e.GET("/", func(c echo.Context) error {
+				return c.String(400, "")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(400))
+			Expect(doLogCalled).To(BeTrue())
+			Expect(logHook.Entries[len(logHook.Entries)-1].Data).To(And(
+				HaveKeyWithValue("before", 1),
+				HaveKeyWithValue("after", 2),
+			))
+		})
 	})
 
 	Describe("error handling", func() {
@@ -299,6 +345,21 @@ var _ = Describe("API", func() {
 				HaveKeyWithValue("debug_request_body", ""),
 				HaveKeyWithValue("debug_response_body", ContainSubstring("ok")),
 			))
+		})
+		It("can print memory stats every n requests", func() {
+			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: true, DumpMemoryEvery: 2}))
+			e.GET("/endpoint", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
+			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
+			Expect(logHook.Entries).To(HaveLen(4))
+			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[0].Data).ToNot(HaveKey("memory_sys"))
+			Expect(logHook.Entries[1].Message).To(Equal("request_finished"))
+			Expect(logHook.Entries[2].Message).To(Equal("request_debug"))
+			Expect(logHook.Entries[2].Data).To(HaveKey("memory_sys"))
+			Expect(logHook.Entries[3].Message).To(Equal("request_finished"))
 		})
 	})
 })

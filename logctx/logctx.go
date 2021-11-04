@@ -67,6 +67,8 @@ func Logger(c context.Context) *logrus.Entry {
 	return logger
 }
 
+// ActiveTraceId returns the first valid trace value and type from the given context,
+// or MissingTraceIdKey if there is none.
 func ActiveTraceId(c context.Context) (TraceIdKey, string) {
 	if trace, ok := c.Value(RequestTraceIdKey).(string); ok {
 		return RequestTraceIdKey, trace
@@ -78,6 +80,12 @@ func ActiveTraceId(c context.Context) (TraceIdKey, string) {
 		return ProcessTraceIdKey, trace
 	}
 	return MissingTraceIdKey, "no-trace-id-in-context"
+}
+
+// ActiveTraceIdValue returns the value part of ActiveTraceId (does not return the TradeIdKey type part).
+func ActiveTraceIdValue(c context.Context) string {
+	_, v := ActiveTraceId(c)
+	return v
 }
 
 func AddFieldsAndGet(c context.Context, fields map[string]interface{}) (context.Context, *logrus.Entry) {
