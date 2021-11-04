@@ -25,11 +25,12 @@ import (
 )
 
 type Config struct {
-	Logger         *logrus.Entry
-	HealthHandler  echo.HandlerFunc
-	CorsOrigins    []string
-	HealthResponse map[string]interface{}
-	StatusResponse map[string]interface{}
+	Logger                 *logrus.Entry
+	LoggingMiddlwareConfig LoggingMiddlwareConfig
+	HealthHandler          echo.HandlerFunc
+	CorsOrigins            []string
+	HealthResponse         map[string]interface{}
+	StatusResponse         map[string]interface{}
 }
 
 func New(cfg Config) *echo.Echo {
@@ -54,7 +55,7 @@ func New(cfg Config) *echo.Echo {
 	e.Logger.SetOutput(os.Stdout)
 	e.HideBanner = true
 	e.HTTPErrorHandler = NewHTTPErrorHandler(e)
-	e.Use(LoggingMiddleware(cfg.Logger))
+	e.Use(LoggingMiddlewareWithConfig(cfg.Logger, cfg.LoggingMiddlwareConfig))
 	if cfg.CorsOrigins != nil {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins:     cfg.CorsOrigins,
