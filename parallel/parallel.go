@@ -1,10 +1,13 @@
 package parallel
 
 import (
+	"errors"
 	"github.com/hashicorp/go-multierror"
 	"github.com/lithictech/go-aperitif/mariobros"
 	"sync"
 )
+
+var ErrInvalidParallelism = errors.New("degree of parallelism must be > 0")
 
 type empty struct{}
 type Processor func(idx int) error
@@ -22,8 +25,12 @@ type Processor func(idx int) error
 // and assign to the slice index while processing.
 // See ParallelForFiles for an example usage.
 func ForEach(total int, n int, process Processor) error {
+	if n <= 0 {
+		return ErrInvalidParallelism
+	}
+
 	semaphore := make(chan empty, n)
-	errors := make([]error, total)
+	errs := make([]error, total)
 
 	wg := sync.WaitGroup{}
 	wg.Add(total)
@@ -32,11 +39,11 @@ func ForEach(total int, n int, process Processor) error {
 			mario := mariobros.Yo("parallel.foreach")
 			defer mario()
 			semaphore <- empty{}
-			errors[i] = process(i)
+			errs[i] = process(i)
 			<-semaphore
 			wg.Done()
 		}(i)
 	}
 	wg.Wait()
-	return multierror.Append(nil, errors...).ErrorOrNil()
+	return multierror.Append(nil, errs...).ErrorOrNil()
 }
