@@ -29,6 +29,7 @@ type Config struct {
 	LoggingMiddlwareConfig LoggingMiddlwareConfig
 	HealthHandler          echo.HandlerFunc
 	CorsOrigins            []string
+	CorsConfig             *middleware.CORSConfig
 	HealthResponse         map[string]interface{}
 	StatusResponse         map[string]interface{}
 }
@@ -56,11 +57,11 @@ func New(cfg Config) *echo.Echo {
 	e.HideBanner = true
 	e.HTTPErrorHandler = NewHTTPErrorHandler(e)
 	e.Use(LoggingMiddlewareWithConfig(cfg.Logger, cfg.LoggingMiddlwareConfig))
-	if cfg.CorsOrigins != nil {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     cfg.CorsOrigins,
-			AllowCredentials: true,
-		}))
+	if cfg.CorsConfig == nil && cfg.CorsOrigins != nil {
+		cfg.CorsConfig = &middleware.CORSConfig{AllowOrigins: cfg.CorsOrigins, AllowCredentials: true}
+	}
+	if cfg.CorsConfig != nil {
+		e.Use(middleware.CORSWithConfig(*cfg.CorsConfig))
 	}
 	e.GET(HealthPath, cfg.HealthHandler)
 	e.GET(StatusPath, func(c echo.Context) error {
