@@ -46,16 +46,24 @@ var _ = Describe("API", func() {
 		Expect(rr).To(HaveJsonBody(HaveKeyWithValue("o", "k")))
 	})
 
-	It("can use a custom health handler", func() {
+	It("can use custom health and status fields", func() {
 		e = api.New(api.Config{
 			Logger: logEntry,
 			HealthHandler: func(c echo.Context) error {
 				return c.String(200, "yo")
 			},
+			HealthPath: "/health",
+			StatusHandler: func(c echo.Context) error {
+				return c.String(202, "hai")
+			},
+			StatusPath: "/status",
 		})
-		rr := Serve(e, GetRequest("/healthz"))
+		rr := Serve(e, GetRequest("/health"))
 		Expect(rr).To(HaveResponseCode(200))
 		Expect(rr.Body.String()).To(Equal("yo"))
+		rr = Serve(e, GetRequest("/status"))
+		Expect(rr).To(HaveResponseCode(202))
+		Expect(rr.Body.String()).To(Equal("hai"))
 	})
 
 	It("has a status endpoint", func() {

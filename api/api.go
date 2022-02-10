@@ -27,11 +27,30 @@ import (
 type Config struct {
 	Logger                 *logrus.Entry
 	LoggingMiddlwareConfig LoggingMiddlwareConfig
-	HealthHandler          echo.HandlerFunc
-	CorsOrigins            []string
-	CorsConfig             *middleware.CORSConfig
-	HealthResponse         map[string]interface{}
-	StatusResponse         map[string]interface{}
+	// Origins for echo's CORS middleware.
+	// If it and CorsConfig are empty, do not add the middleware.
+	CorsOrigins []string
+	// Config for echo's CORS middleware.
+	// Supercedes CorsOrigins.
+	// If it and CorsOrigins are empty, do not add the middleware.
+	CorsConfig *middleware.CORSConfig
+	// Return this from the health endpoint.
+	// Defaults to {"o":"k"}.
+	HealthResponse map[string]interface{}
+	// Defaults to /healthz.
+	HealthPath string
+	// If the health endpoint is not static
+	// (for example so it can check whether a database is available),
+	// provide this instead of HealthResponse.
+	HealthHandler echo.HandlerFunc
+	// Return this from the status endpoint.
+	// The default is not very useful so you should provide a value.
+	StatusResponse map[string]interface{}
+	// Defaults to /statusz
+	StatusPath string
+	// If the status endpoint is not static,
+	// provide this instead of StatusRespoinse.
+	StatusHandler echo.HandlerFunc
 }
 
 func New(cfg Config) *echo.Echo {
@@ -46,11 +65,22 @@ func New(cfg Config) *echo.Echo {
 			return c.JSON(http.StatusOK, cfg.HealthResponse)
 		}
 	}
-	if cfg.StatusResponse == nil {
-		cfg.StatusResponse = map[string]interface{}{
-			"version": "not configured",
-			"message": "you are a lovely and strong person",
+	if cfg.HealthPath == "" {
+		cfg.HealthPath = HealthPath
+	}
+	if cfg.StatusHandler == nil {
+		if cfg.StatusResponse == nil {
+			cfg.StatusResponse = map[string]interface{}{
+				"version": "not configured",
+				"message": "you are a lovely and strong person",
+			}
 		}
+		cfg.StatusHandler = func(c echo.Context) error {
+			return c.JSON(http.StatusOK, cfg.StatusResponse)
+		}
+	}
+	if cfg.StatusPath == "" {
+		cfg.StatusPath = StatusPath
 	}
 	e := echo.New()
 	e.Logger.SetOutput(os.Stdout)
@@ -63,10 +93,8 @@ func New(cfg Config) *echo.Echo {
 	if cfg.CorsConfig != nil {
 		e.Use(middleware.CORSWithConfig(*cfg.CorsConfig))
 	}
-	e.GET(HealthPath, cfg.HealthHandler)
-	e.GET(StatusPath, func(c echo.Context) error {
-		return c.JSON(http.StatusOK, cfg.StatusResponse)
-	})
+	e.GET(cfg.HealthPath, cfg.HealthHandler)
+	e.GET(cfg.StatusPath, cfg.StatusHandler)
 	return e
 }
 
