@@ -25,6 +25,8 @@ import (
 )
 
 type Config struct {
+	// If not provided, create an echo.New.
+	App                    *echo.Echo
 	Logger                 *logrus.Entry
 	LoggingMiddlwareConfig LoggingMiddlwareConfig
 	// Origins for echo's CORS middleware.
@@ -82,7 +84,10 @@ func New(cfg Config) *echo.Echo {
 	if cfg.StatusPath == "" {
 		cfg.StatusPath = StatusPath
 	}
-	e := echo.New()
+	e := cfg.App
+	if e == nil {
+		e = echo.New()
+	}
 	e.Logger.SetOutput(os.Stdout)
 	e.HideBanner = true
 	e.HTTPErrorHandler = NewHTTPErrorHandler(e)

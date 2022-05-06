@@ -83,6 +83,12 @@ var _ = Describe("API", func() {
 		Expect(Serve(e, GetRequest("/statusz"))).To(HaveResponseCode(200))
 	})
 
+	It("can use the provided echo instance", func() {
+		e1 := echo.New()
+		e2 := api.New(api.Config{App: e1})
+		Expect(e2).To(BeIdenticalTo(e1))
+	})
+
 	Describe("tracing", func() {
 		It("uses the trace id in the Trace-Id header", func() {
 			req := GetRequest("/healthz")
