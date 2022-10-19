@@ -2,7 +2,7 @@ package stringutil_test
 
 import (
 	"github.com/lithictech/go-aperitif/stringutil"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"strings"
 	"testing"
