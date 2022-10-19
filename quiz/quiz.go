@@ -1,7 +1,7 @@
 package quiz
 
 import (
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"math/rand"
 	"os"
 	"strconv"

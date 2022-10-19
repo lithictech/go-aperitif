@@ -8,7 +8,7 @@ import (
 	. "github.com/lithictech/go-aperitif/api/echoapitest"
 	. "github.com/lithictech/go-aperitif/apitest"
 	"github.com/lithictech/go-aperitif/logctx"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/rgalanakis/golangal"
 	"github.com/sirupsen/logrus"

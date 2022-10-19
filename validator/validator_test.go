@@ -3,7 +3,7 @@ package validator_test
 import (
 	"errors"
 	"github.com/lithictech/go-aperitif/validator"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"testing"
 	"time"
