@@ -1,7 +1,7 @@
 package spa_test
 
 import (
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	. "github.com/lithictech/go-aperitif/api/echoapitest"
 	"github.com/lithictech/go-aperitif/api/spa"
 	. "github.com/lithictech/go-aperitif/apitest"

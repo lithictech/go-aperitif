@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"errors"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/api"
 	"github.com/lithictech/go-aperitif/api/apiparams"
 	. "github.com/lithictech/go-aperitif/api/echoapitest"

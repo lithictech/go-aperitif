@@ -2,7 +2,7 @@ package apiparams_test
 
 import (
 	"fmt"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/api/apiparams"
 	. "github.com/lithictech/go-aperitif/api/echoapitest"
 	. "github.com/lithictech/go-aperitif/apitest"

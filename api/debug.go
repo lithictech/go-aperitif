@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/lithictech/go-aperitif/logctx"
 	"net/http"
 	"runtime"

@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/api/apiparams"
 	"github.com/lithictech/go-aperitif/logctx"
 	"github.com/sirupsen/logrus"
