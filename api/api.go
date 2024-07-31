@@ -19,7 +19,7 @@ package api
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/lithictech/go-aperitif/logctx"
+	"github.com/lithictech/go-aperitif/v2/logctx"
 	"log/slog"
 	"net/http"
 	"os"

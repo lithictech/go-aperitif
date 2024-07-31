@@ -1,4 +1,4 @@
-module github.com/lithictech/go-aperitif
+module github.com/lithictech/go-aperitif/v2
 
 go 1.22
 

@@ -2,7 +2,7 @@ package validator
 
 import (
 	"errors"
-	"github.com/lithictech/go-aperitif/kronos"
+	"github.com/lithictech/go-aperitif/v2/kronos"
 	"github.com/rgalanakis/validator"
 	"net/url"
 	"regexp"

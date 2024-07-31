@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"github.com/labstack/echo/v4"
-	"github.com/lithictech/go-aperitif/logctx"
+	"github.com/lithictech/go-aperitif/v2/logctx"
 )
 
 // StdContext returns a standard context from an echo context.

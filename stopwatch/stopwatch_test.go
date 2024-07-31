@@ -2,8 +2,8 @@ package stopwatch_test
 
 import (
 	"context"
-	"github.com/lithictech/go-aperitif/logctx"
-	"github.com/lithictech/go-aperitif/stopwatch"
+	"github.com/lithictech/go-aperitif/v2/logctx"
+	"github.com/lithictech/go-aperitif/v2/stopwatch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"log/slog"

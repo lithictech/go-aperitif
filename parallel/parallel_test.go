@@ -1,7 +1,7 @@
 package parallel_test
 
 import (
-	"github.com/lithictech/go-aperitif/parallel"
+	"github.com/lithictech/go-aperitif/v2/parallel"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sync"

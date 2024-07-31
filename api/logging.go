@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/lithictech/go-aperitif/api/apiparams"
-	"github.com/lithictech/go-aperitif/logctx"
+	"github.com/lithictech/go-aperitif/v2/api/apiparams"
+	"github.com/lithictech/go-aperitif/v2/logctx"
 	"log/slog"
 	"net/http"
 	"runtime"

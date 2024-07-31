@@ -1,7 +1,7 @@
 package async_test
 
 import (
-	"github.com/lithictech/go-aperitif/async"
+	"github.com/lithictech/go-aperitif/v2/async"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"testing"
