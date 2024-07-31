@@ -2,7 +2,7 @@ package kronos_test
 
 import (
 	"fmt"
-	"github.com/lithictech/go-aperitif/kronos"
+	"github.com/lithictech/go-aperitif/v2/kronos"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"math/rand"

@@ -1,11 +1,12 @@
 package stopwatch_test
 
 import (
-	"github.com/lithictech/go-aperitif/stopwatch"
+	"context"
+	"github.com/lithictech/go-aperitif/v2/logctx"
+	"github.com/lithictech/go-aperitif/v2/stopwatch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/test"
+	"log/slog"
 	"testing"
 )
 
@@ -15,67 +16,64 @@ func TestStopwatch(t *testing.T) {
 }
 
 var _ = Describe("Stopwatch", func() {
-	var logger *logrus.Logger
-	var entry *logrus.Entry
-	var hook *test.Hook
+	var logger *slog.Logger
+	var hook *logctx.Hook
+	var ctx context.Context
 
 	BeforeEach(func() {
-		logger, hook = test.NewNullLogger()
-		logger.SetLevel(logrus.DebugLevel)
-		entry = logger.WithFields(nil)
+		logger, hook = logctx.NewNullLogger()
+		ctx = logctx.WithLogger(context.Background(), logger)
 	})
+
 	It("logs start and stop", func() {
-		sw := stopwatch.Start(entry, "test")
-		sw.Finish()
-		Expect(hook.Entries).To(HaveLen(2))
+		sw := stopwatch.Start(ctx, logger, "test")
+		sw.Finish(ctx)
+		Expect(hook.Records()).To(HaveLen(2))
 
-		Expect(hook.Entries[0].Level).To(Equal(logrus.DebugLevel))
-		Expect(hook.Entries[0].Message).To(ContainSubstring("test_started"))
+		Expect(hook.Records()[0].Record.Level).To(Equal(slog.LevelDebug))
+		Expect(hook.Records()[0].Record.Message).To(ContainSubstring("test_started"))
 
-		Expect(hook.Entries[1].Level).To(Equal(logrus.InfoLevel))
-		Expect(hook.Entries[1].Message).To(ContainSubstring("test_finished"))
+		Expect(hook.Records()[1].Record.Level).To(Equal(slog.LevelInfo))
+		Expect(hook.Records()[1].Record.Message).To(ContainSubstring("test_finished"))
 	})
 
 	It("can custom start and stop", func() {
-		sw := stopwatch.StartWith(entry, "test", stopwatch.StartOpts{Level: logrus.WarnLevel, Key: "_begin"})
-		sw.FinishWith(stopwatch.FinishOpts{Level: logrus.ErrorLevel, Key: "_end", ElapsedKey: "timing"})
-		Expect(hook.Entries).To(HaveLen(2))
+		sw := stopwatch.StartWith(ctx, logger, "test", stopwatch.StartOpts{Level: slog.LevelWarn, Key: "_begin"})
+		sw.FinishWith(ctx, stopwatch.FinishOpts{Level: slog.LevelError, Key: "_end", ElapsedKey: "timing"})
+		Expect(hook.Records()).To(HaveLen(2))
 
-		Expect(hook.Entries[0].Level).To(Equal(logrus.WarnLevel))
-		Expect(hook.Entries[0].Message).To(ContainSubstring("test_begin"))
+		Expect(hook.Records()[0].Record.Level).To(Equal(slog.LevelWarn))
+		Expect(hook.Records()[0].Record.Message).To(ContainSubstring("test_begin"))
 
-		Expect(hook.Entries[1].Level).To(Equal(logrus.ErrorLevel))
-		Expect(hook.Entries[1].Message).To(ContainSubstring("test_end"))
-		Expect(hook.Entries[1].Data).To(HaveKey("timing"))
+		Expect(hook.Records()[1].Record.Level).To(Equal(slog.LevelError))
+		Expect(hook.Records()[1].Record.Message).To(ContainSubstring("test_end"))
+		Expect(hook.Records()[1].AttrMap()).To(HaveKey("timing"))
 	})
 
 	It("can use a custom finish logger", func() {
-		startLogger, startHook := test.NewNullLogger()
-		startLogger.SetLevel(logrus.DebugLevel)
+		startLogger, startHook := logctx.NewNullLogger()
+		finishLogger, finishHook := logctx.NewNullLogger()
 
-		finishLogger, finishHook := test.NewNullLogger()
-		finishLogger.SetLevel(logrus.DebugLevel)
+		sw := stopwatch.Start(ctx, startLogger, "test")
 
-		sw := stopwatch.Start(startLogger.WithFields(nil), "test")
+		sw.FinishWith(ctx, stopwatch.FinishOpts{Logger: finishLogger})
 
-		sw.FinishWith(stopwatch.FinishOpts{Logger: finishLogger.WithFields(nil)})
-
-		Expect(startHook.Entries).To(HaveLen(1))
-		Expect(finishHook.Entries).To(HaveLen(1))
+		Expect(startHook.Records()).To(HaveLen(1))
+		Expect(finishHook.Records()).To(HaveLen(1))
 	})
 
 	It("can lap", func() {
-		sw := stopwatch.Start(entry, "test")
-		sw.Lap()
-		sw.LapWith(stopwatch.LapOpts{Key: "_split", Level: logrus.WarnLevel, ElapsedKey: "timing"})
-		Expect(hook.Entries).To(HaveLen(3))
+		sw := stopwatch.Start(ctx, logger, "test")
+		sw.Lap(ctx)
+		sw.LapWith(ctx, stopwatch.LapOpts{Key: "_split", Level: slog.LevelWarn, ElapsedKey: "timing"})
+		Expect(hook.Records()).To(HaveLen(3))
 
-		Expect(hook.Entries[1].Level).To(Equal(logrus.InfoLevel))
-		Expect(hook.Entries[1].Message).To(ContainSubstring("test_lap"))
-		Expect(hook.Entries[1].Data).To(HaveKey("elapsed"))
+		Expect(hook.Records()[1].Record.Level).To(Equal(slog.LevelInfo))
+		Expect(hook.Records()[1].Record.Message).To(ContainSubstring("test_lap"))
+		Expect(hook.Records()[1].AttrMap()).To(HaveKey("elapsed"))
 
-		Expect(hook.Entries[2].Level).To(Equal(logrus.WarnLevel))
-		Expect(hook.Entries[2].Message).To(ContainSubstring("test_split"))
-		Expect(hook.Entries[2].Data).To(HaveKey("timing"))
+		Expect(hook.Records()[2].Record.Level).To(Equal(slog.LevelWarn))
+		Expect(hook.Records()[2].Record.Message).To(ContainSubstring("test_split"))
+		Expect(hook.Records()[2].AttrMap()).To(HaveKey("timing"))
 	})
 })

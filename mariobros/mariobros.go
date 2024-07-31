@@ -7,11 +7,11 @@
 // the operation, like 'level1.area4.lavapit'. Then defer the callback returned from that function,
 // like:
 //
-//     go func() {
-//         mario := mariobros.Yo("level1.area4.lavapit")
-//         defer mario()
-//         // Do more stuff...
-//     }
+//	go func() {
+//	    mario := mariobros.Yo("level1.area4.lavapit")
+//	    defer mario()
+//	    // Do more stuff...
+//	}
 //
 // Every 5 seconds (or whatever is configured), mariobros will report on the active goroutines.
 //
@@ -22,7 +22,6 @@
 //
 // If Mariobros is not active, calls to Yo noop and the timer that prints does not run.
 // It's important to call Mariobros.Start() early, or import mariobros/autoload.
-//
 package mariobros
 
 import (
@@ -42,10 +41,9 @@ type Writer func(totalActive uint, activePerName map[string][]GoroutineId)
 // StreamWriter is used when you want to write mariobros output to a stream.
 // The output you get is like:
 //
-//     active goroutines (1):
-//       my.job: 1, 5
-//       other.job: 6, 7
-//
+//	active goroutines (1):
+//	  my.job: 1, 5
+//	  other.job: 6, 7
 func StreamWriter(w io.Writer) Writer {
 	return func(totalActive uint, activePerName map[string][]GoroutineId) {
 		w := func(s string, a ...interface{}) {
@@ -67,11 +65,11 @@ func StreamWriter(w io.Writer) Writer {
 // KeyValueWriter is helpful when you want to log a structured message.
 // For example:
 //
-//     mariobros.Start(mariobros.NewOptions(func(o *mariobros.Options) {
-//	       o.Writer = mariobros.KeyValueWriter("mariobros_", func(m map[string]interface{}) {
-//             logger.WithFields(m).Info("mariobros")
-//         })
-//     }))
+//	    mariobros.Start(mariobros.NewOptions(func(o *mariobros.Options) {
+//		       o.Writer = mariobros.KeyValueWriter("mariobros_", func(m map[string]interface{}) {
+//	            logger.WithFields(m).Info("mariobros")
+//	        })
+//	    }))
 func KeyValueWriter(keyPrefix string, write func(map[string]interface{})) Writer {
 	return func(totalActive uint, activePerName map[string][]GoroutineId) {
 		result := make(map[string]interface{}, len(activePerName)+1)

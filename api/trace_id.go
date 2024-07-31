@@ -2,8 +2,8 @@ package api
 
 import (
 	"github.com/google/uuid"
-	"github.com/labstack/echo"
-	"github.com/lithictech/go-aperitif/logctx"
+	"github.com/labstack/echo/v4"
+	"github.com/lithictech/go-aperitif/v2/logctx"
 )
 
 const TraceIdHeader = "Trace-Id"

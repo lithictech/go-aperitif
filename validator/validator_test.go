@@ -2,7 +2,7 @@ package validator_test
 
 import (
 	"errors"
-	"github.com/lithictech/go-aperitif/validator"
+	"github.com/lithictech/go-aperitif/v2/validator"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"testing"

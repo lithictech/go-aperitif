@@ -119,9 +119,9 @@ func RollMonth(t time.Time, months int) time.Time {
 
 // Get the new month after offsetting month m by offset.
 //
-//     offsetMonth(January, 1) => February
-//     offsetMonth(January, 13) => February
-//     offsetMonth(January, -1) => December
+//	offsetMonth(January, 1) => February
+//	offsetMonth(January, 13) => February
+//	offsetMonth(January, -1) => December
 func offsetMonth(m time.Month, offset int) time.Month {
 	zeroBased := int(m - 1)
 	offsetMonth := zeroBased + offset

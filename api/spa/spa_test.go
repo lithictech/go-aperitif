@@ -1,10 +1,10 @@
 package spa_test
 
 import (
-	"github.com/labstack/echo"
-	. "github.com/lithictech/go-aperitif/api/echoapitest"
-	"github.com/lithictech/go-aperitif/api/spa"
-	. "github.com/lithictech/go-aperitif/apitest"
+	"github.com/labstack/echo/v4"
+	. "github.com/lithictech/go-aperitif/v2/api/echoapitest"
+	"github.com/lithictech/go-aperitif/v2/api/spa"
+	. "github.com/lithictech/go-aperitif/v2/apitest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/rgalanakis/golangal"

@@ -2,11 +2,11 @@ package preflight_test
 
 import (
 	"errors"
-	"github.com/labstack/echo"
-	"github.com/lithictech/go-aperitif/api"
-	. "github.com/lithictech/go-aperitif/api/echoapitest"
-	"github.com/lithictech/go-aperitif/api/preflight"
-	. "github.com/lithictech/go-aperitif/apitest"
+	"github.com/labstack/echo/v4"
+	"github.com/lithictech/go-aperitif/v2/api"
+	. "github.com/lithictech/go-aperitif/v2/api/echoapitest"
+	"github.com/lithictech/go-aperitif/v2/api/preflight"
+	. "github.com/lithictech/go-aperitif/v2/apitest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/rgalanakis/golangal"

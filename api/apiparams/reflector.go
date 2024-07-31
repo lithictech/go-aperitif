@@ -114,9 +114,9 @@ func (f *fieldMapper) mapAndFlushRun() {
 // mapping the reflect.StructField to the name we should expect
 // it to be called in parameters. In other words, this struct:
 //
-//		type Params struct {
-//			Foo string `json:"foo"`
-//		}
+//	type Params struct {
+//		Foo string `json:"foo"`
+//	}
 //
 // would set a map of
 // {"foo": <reflect.StructField>} for paramFieldsByJsonName and
@@ -126,13 +126,13 @@ func (f *fieldMapper) mapAndFlushRun() {
 //
 // For nested params, the mapping is still flat. For example, this struct:
 //
-//		type Params struct {
-//			[]struct {
-//				A string `json:"a"`
-//			}
-//			Nest struct {
-//				B int `json:"b"`
-//			} `json:"nest"`
+//	type Params struct {
+//		[]struct {
+//			A string `json:"a"`
+//		}
+//		Nest struct {
+//			B int `json:"b"`
+//		} `json:"nest"`
 //
 // would set a map of
 // {"a": <reflect.StructField>, "nest":<StructField>, "b":<StructField>} for paramFieldsByJsonName and
@@ -143,8 +143,8 @@ func (f *fieldMapper) mapAndFlushRun() {
 //     Since path/query params are a flat list of key-value pairs, we don't need
 //     deep parameters from the struct.
 //   - Mapping validation field errors (like "Foo" or "Nest[0].B" to JSON names.
-//	   The only alternative is to map names back after the fact,
-//	   or write yet-another-validator that is consistent with the way we parse names
+//     The only alternative is to map names back after the fact,
+//     or write yet-another-validator that is consistent with the way we parse names
 //     from struct tags.
 //     See the MapFieldNameToParamName method doc for more details on how this works.
 func (r reflector) parseStructTags(underlyingType reflect.Type) {
@@ -183,8 +183,8 @@ func (r reflector) parseStructTags(underlyingType reflect.Type) {
 // or because a field is being set of a type that isn't supported.
 // For the latter case, imagine a struct with:
 //
-// 		D time.Time `json:"d"`
-// 		Foo MyFooType `json:"foo"`
+//	D time.Time `json:"d"`
+//	Foo MyFooType `json:"foo"`
 //
 // time.Time is a supported type, so would be fine, but MyFooType
 // is not a supported type so this code would panic.
@@ -202,11 +202,11 @@ func (r reflector) setField(fieldDef reflect.StructField, field reflect.Value, v
 
 // parseValue parses a string value into a reflect.Value that can be set via reflection.
 //
-// - t is the reflect.Type of the field that the value will be parsed into,
-//   such as a basic type like string or int, a slice type like []string or []int, or a struct type.
-// - field is the reflect.Value of the existing struct field-
-//   this is only used for slice types, which need to append to the field.
-// - value is the string value to parse.
+//   - t is the reflect.Type of the field that the value will be parsed into,
+//     such as a basic type like string or int, a slice type like []string or []int, or a struct type.
+//   - field is the reflect.Value of the existing struct field-
+//     this is only used for slice types, which need to append to the field.
+//   - value is the string value to parse.
 //
 // This is verbose, if generally straightforward.
 // If t is not a pointer type, the reflect.Value returned points to the new field value.

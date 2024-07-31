@@ -2,8 +2,8 @@ package apiparams_test
 
 import (
 	"encoding/json"
-	"github.com/lithictech/go-aperitif/api/apiparams"
-	"github.com/lithictech/go-aperitif/convext"
+	"github.com/lithictech/go-aperitif/v2/api/apiparams"
+	"github.com/lithictech/go-aperitif/v2/convext"
 	"net/http"
 	"strings"
 	"testing"

@@ -2,8 +2,7 @@ package validator
 
 import (
 	"errors"
-	"github.com/lithictech/go-aperitif/kronos"
-	"github.com/lithictech/go-aperitif/stringutil"
+	"github.com/lithictech/go-aperitif/v2/kronos"
 	"github.com/rgalanakis/validator"
 	"net/url"
 	"regexp"
@@ -29,9 +28,10 @@ const optional = "opt"
 // Split the param string on |,
 // and return a type of (other args, if param ends in |opt, error in the case of empty args).
 // Examples:
-//		"a|b" -> (["a", "b"], false, nil)
-// 		"a|opt" -> (["a"], true, nil)
-//		"|opt" -> ([], false, <error>)
+//
+//	"a|b" -> (["a", "b"], false, nil)
+//	"a|opt" -> (["a"], true, nil)
+//	"|opt" -> ([], false, <error>)
 func splitOptionalVal(param string) ([]string, bool, error) {
 	params := strings.Split(param, "|")
 	if len(params) == 0 {
@@ -91,7 +91,7 @@ func validateEnumImpl(v interface{}, param string, mapper func(string) string) e
 		return err
 	}
 	if mapper != nil {
-		choices = stringutil.Map(choices, mapper)
+		choices = mapString(choices, mapper)
 	}
 
 	if s, ok := v.(string); ok {
@@ -109,7 +109,7 @@ func validateEnumImpl(v interface{}, param string, mapper func(string) string) e
 			return validator.ErrBadParameter
 		}
 		if mapper != nil {
-			ss = stringutil.Map(ss, mapper)
+			ss = mapString(ss, mapper)
 		}
 		return validateEnumImplSlice(ss, choices)
 	}
@@ -138,7 +138,7 @@ func validateEnumImplStr(s string, choices []string, optional bool) error {
 
 func validateEnumImplSlice(ss []string, choices []string) error {
 	for _, s := range ss {
-		if !stringutil.Contains(choices, s) {
+		if !containsString(choices, s) {
 			return newError("element not one of " + strings.Join(choices, "|"))
 		}
 	}

@@ -2,7 +2,7 @@ package apiparams
 
 import (
 	"fmt"
-	"github.com/lithictech/go-aperitif/validator"
+	"github.com/lithictech/go-aperitif/v2/validator"
 	"net/http"
 	"reflect"
 	"time"

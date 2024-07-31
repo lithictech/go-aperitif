@@ -2,17 +2,16 @@ package api_test
 
 import (
 	"errors"
-	"github.com/labstack/echo"
-	"github.com/lithictech/go-aperitif/api"
-	"github.com/lithictech/go-aperitif/api/apiparams"
-	. "github.com/lithictech/go-aperitif/api/echoapitest"
-	. "github.com/lithictech/go-aperitif/apitest"
-	"github.com/lithictech/go-aperitif/logctx"
+	"github.com/labstack/echo/v4"
+	"github.com/lithictech/go-aperitif/v2/api"
+	"github.com/lithictech/go-aperitif/v2/api/apiparams"
+	. "github.com/lithictech/go-aperitif/v2/api/echoapitest"
+	. "github.com/lithictech/go-aperitif/v2/apitest"
+	"github.com/lithictech/go-aperitif/v2/logctx"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/rgalanakis/golangal"
-	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/test"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,15 +24,14 @@ func TestAPI(t *testing.T) {
 
 var _ = Describe("API", func() {
 	var e *echo.Echo
-	var logger *logrus.Logger
-	var logHook *test.Hook
-	var logEntry *logrus.Entry
+
+	var logger *slog.Logger
+	var logHook *logctx.Hook
 
 	BeforeEach(func() {
-		logger, logHook = test.NewNullLogger()
-		logEntry = logger.WithFields(nil)
+		logger, logHook = logctx.NewNullLogger()
 		e = api.New(api.Config{
-			Logger:         logEntry,
+			Logger:         logger,
 			HealthResponse: map[string]interface{}{"o": "k"},
 			StatusResponse: map[string]interface{}{"it": "me"},
 		})
@@ -48,7 +46,7 @@ var _ = Describe("API", func() {
 
 	It("can use custom health and status fields", func() {
 		e = api.New(api.Config{
-			Logger: logEntry,
+			Logger: logger,
 			HealthHandler: func(c echo.Context) error {
 				return c.String(200, "yo")
 			},
@@ -117,58 +115,56 @@ var _ = Describe("API", func() {
 	Describe("logging", func() {
 		It("does not corrupt the input logger (by reassigning the closure)", func() {
 			e.GET("/before-first-call", func(c echo.Context) error {
-				Expect(api.Logger(c).Data).ToNot(HaveKey("request_status"))
+				Expect(api.Logger(c).Handler().(*logctx.Hook).AttrMap()).ToNot(HaveKey("request_status"))
 				return c.String(401, "ok")
 			})
 			e.GET("/after-first-call", func(c echo.Context) error {
-				Expect(api.Logger(c).Data).ToNot(HaveKey("request_status"))
+				Expect(api.Logger(c).Handler().(*logctx.Hook).AttrMap()).ToNot(HaveKey("request_status"))
 				return c.String(403, "ok")
 			})
 			Expect(Serve(e, GetRequest("/before-first-call"))).To(HaveResponseCode(401))
 			Expect(Serve(e, GetRequest("/after-first-call"))).To(HaveResponseCode(403))
-			Expect(logHook.Entries).To(HaveLen(2))
+			Expect(logHook.Records()).To(HaveLen(2))
 		})
 		It("logs normal requests at info", func() {
 			e.GET("/", func(c echo.Context) error {
 				return c.String(200, "ok")
 			})
 			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(200))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Level).To(Equal(logrus.InfoLevel))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelInfo))
 		})
 		It("logs 500+ at error", func() {
 			e.GET("/", func(c echo.Context) error {
 				return c.String(500, "oh")
 			})
 			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(500))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Level).To(Equal(logrus.ErrorLevel))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelError))
 		})
 		It("logs 400 to 499 as warn", func() {
 			e.GET("/", func(c echo.Context) error {
 				return c.String(400, "client err")
 			})
 			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(400))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Level).To(Equal(logrus.WarnLevel))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelWarn))
 		})
 		It("logs status and health as debug", func() {
-			logger.SetLevel(logrus.DebugLevel)
 			Expect(Serve(e, GetRequest("/healthz"))).To(HaveResponseCode(200))
 			Expect(Serve(e, GetRequest("/statusz"))).To(HaveResponseCode(200))
-			Expect(logHook.Entries).To(HaveLen(2))
-			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
-			Expect(logHook.Entries[1].Level).To(Equal(logrus.DebugLevel))
+			Expect(logHook.Records()).To(HaveLen(2))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelDebug))
+			Expect(logHook.Records()[1].Record.Level).To(Equal(slog.LevelDebug))
 		})
 		It("logs options as debug", func() {
-			logger.SetLevel(logrus.DebugLevel)
 			Expect(Serve(e, NewRequest("OPTIONS", "/foo", nil))).To(HaveResponseCode(404))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Level).To(Equal(logrus.DebugLevel))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelDebug))
 		})
 		It("can log request and response headers", func() {
 			e = api.New(api.Config{
-				Logger: logEntry,
+				Logger: logger,
 				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
 					RequestHeaders:  true,
 					ResponseHeaders: true,
@@ -179,8 +175,8 @@ var _ = Describe("API", func() {
 				return c.String(200, "ok")
 			})
 			Expect(Serve(e, GetRequest("/", SetReqHeader("ReqHead", "ReqHeadVal")))).To(HaveResponseCode(200))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Data).To(And(
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].AttrMap()).To(And(
 				HaveKeyWithValue("request_header.Reqhead", "ReqHeadVal"),
 				HaveKeyWithValue("response_header.Reshead", "ResHeadVal"),
 			))
@@ -188,15 +184,15 @@ var _ = Describe("API", func() {
 		It("can use custom DoLog, BeforeRequest, and AfterRequest hooks", func() {
 			doLogCalled := false
 			e = api.New(api.Config{
-				Logger: logEntry,
+				Logger: logger,
 				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
-					BeforeRequest: func(_ echo.Context, e *logrus.Entry) *logrus.Entry {
-						return e.WithField("before", 1)
+					BeforeRequest: func(_ echo.Context, e *slog.Logger) *slog.Logger {
+						return e.With("before", 1)
 					},
-					AfterRequest: func(_ echo.Context, e *logrus.Entry) *logrus.Entry {
-						return e.WithField("after", 2)
+					AfterRequest: func(_ echo.Context, e *slog.Logger) *slog.Logger {
+						return e.With("after", 2)
 					},
-					DoLog: func(c echo.Context, e *logrus.Entry) {
+					DoLog: func(c echo.Context, e *slog.Logger) {
 						doLogCalled = true
 						api.LoggingMiddlewareDefaultDoLog(c, e)
 					},
@@ -207,9 +203,9 @@ var _ = Describe("API", func() {
 			})
 			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(400))
 			Expect(doLogCalled).To(BeTrue())
-			Expect(logHook.Entries[len(logHook.Entries)-1].Data).To(And(
-				HaveKeyWithValue("before", 1),
-				HaveKeyWithValue("after", 2),
+			Expect(logHook.LastRecord().AttrMap()).To(And(
+				HaveKeyWithValue("before", BeEquivalentTo(1)),
+				HaveKeyWithValue("after", BeEquivalentTo(2)),
 			))
 		})
 	})
@@ -284,7 +280,8 @@ var _ = Describe("API", func() {
 			r, err := http.NewRequest("GET", "", nil)
 			Expect(err).ToNot(HaveOccurred())
 			ctx := e.NewContext(r, httptest.NewRecorder())
-			logger := logrus.New().WithField("a", 2)
+			logger, _ := logctx.NewNullLogger()
+			logger = logger.With("a", 2)
 			api.SetLogger(ctx, logger)
 			tid := api.TraceId(ctx)
 
@@ -292,8 +289,8 @@ var _ = Describe("API", func() {
 			tkey, tval := logctx.ActiveTraceId(c)
 			Expect(tkey).To(Equal(logctx.RequestTraceIdKey))
 			Expect(tval).To(Equal(tid))
-			Expect(logctx.Logger(c).Data).To(And(
-				HaveKeyWithValue("a", 2),
+			Expect(logctx.Logger(c).Handler().(*logctx.Hook).AttrMap()).To(And(
+				HaveKeyWithValue("a", BeEquivalentTo(2)),
 				HaveKeyWithValue(BeEquivalentTo(logctx.RequestTraceIdKey), tid),
 			))
 		})
@@ -320,17 +317,14 @@ var _ = Describe("API", func() {
 	})
 
 	Describe("DebugMiddleware", func() {
-		BeforeEach(func() {
-			logger.SetLevel(logrus.DebugLevel)
-		})
 		It("noops if not enabled", func() {
 			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: false, DumpResponseBody: true}))
 			e.GET("/foo", func(c echo.Context) error {
 				return c.String(200, "ok")
 			})
 			Serve(e, NewRequest("POST", "/endpoint", nil))
-			Expect(logHook.Entries).To(HaveLen(1))
-			Expect(logHook.Entries[0].Message).To(Equal("request_finished"))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].Record.Message).To(Equal("request_finished"))
 		})
 		It("dumps what is enabled", func() {
 			e.Use(api.DebugMiddleware(api.DebugMiddlewareConfig{Enabled: true, DumpResponseBody: true, DumpResponseHeaders: true}))
@@ -338,9 +332,9 @@ var _ = Describe("API", func() {
 				return c.String(200, "ok")
 			})
 			Serve(e, NewRequest("GET", "/endpoint", nil))
-			Expect(logHook.Entries).To(HaveLen(2))
-			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
-			Expect(logHook.Entries[0].Data).To(And(
+			Expect(logHook.Records()).To(HaveLen(2))
+			Expect(logHook.Records()[0].Record.Message).To(Equal("request_debug"))
+			Expect(logHook.Records()[0].AttrMap()).To(And(
 				HaveKeyWithValue("debug_response_headers", HaveKey("Content-Type")),
 				HaveKeyWithValue("debug_response_body", ContainSubstring("ok")),
 			))
@@ -351,9 +345,9 @@ var _ = Describe("API", func() {
 				return c.String(200, "ok")
 			})
 			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
-			Expect(logHook.Entries).To(HaveLen(2))
-			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
-			Expect(logHook.Entries[0].Data).To(And(
+			Expect(logHook.Records()).To(HaveLen(2))
+			Expect(logHook.Records()[0].Record.Message).To(Equal("request_debug"))
+			Expect(logHook.Records()[0].AttrMap()).To(And(
 				HaveKeyWithValue("debug_request_headers", HaveKey("Foo")),
 				HaveKeyWithValue("debug_response_headers", HaveKey("Content-Type")),
 				HaveKeyWithValue("debug_request_body", ""),
@@ -367,13 +361,13 @@ var _ = Describe("API", func() {
 			})
 			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
 			Serve(e, NewRequest("GET", "/endpoint", nil, SetReqHeader("Foo", "x")))
-			Expect(logHook.Entries).To(HaveLen(4))
-			Expect(logHook.Entries[0].Message).To(Equal("request_debug"))
-			Expect(logHook.Entries[0].Data).ToNot(HaveKey("memory_sys"))
-			Expect(logHook.Entries[1].Message).To(Equal("request_finished"))
-			Expect(logHook.Entries[2].Message).To(Equal("request_debug"))
-			Expect(logHook.Entries[2].Data).To(HaveKey("memory_sys"))
-			Expect(logHook.Entries[3].Message).To(Equal("request_finished"))
+			Expect(logHook.Records()).To(HaveLen(4))
+			Expect(logHook.Records()[0].Record.Message).To(Equal("request_debug"))
+			Expect(logHook.Records()[0].AttrMap()).ToNot(HaveKey("memory_sys"))
+			Expect(logHook.Records()[1].Record.Message).To(Equal("request_finished"))
+			Expect(logHook.Records()[2].Record.Message).To(Equal("request_debug"))
+			Expect(logHook.Records()[2].AttrMap()).To(HaveKey("memory_sys"))
+			Expect(logHook.Records()[3].Record.Message).To(Equal("request_finished"))
 		})
 	})
 })
