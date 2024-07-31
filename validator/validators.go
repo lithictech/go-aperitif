@@ -29,9 +29,10 @@ const optional = "opt"
 // Split the param string on |,
 // and return a type of (other args, if param ends in |opt, error in the case of empty args).
 // Examples:
-//		"a|b" -> (["a", "b"], false, nil)
-// 		"a|opt" -> (["a"], true, nil)
-//		"|opt" -> ([], false, <error>)
+//
+//	"a|b" -> (["a", "b"], false, nil)
+//	"a|opt" -> (["a"], true, nil)
+//	"|opt" -> ([], false, <error>)
 func splitOptionalVal(param string) ([]string, bool, error) {
 	params := strings.Split(param, "|")
 	if len(params) == 0 {

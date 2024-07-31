@@ -34,24 +34,24 @@ For example, consider the following test:
 
 Note all the benefits:
 
-- Data is pulled from path parameters, query parameters, any JSON body,
-  and defaults defined in struct tags. The variable names used for values
-  is specified via the appropriate struct tag.
-  See ParamSource for more details, but possible tags are "path", "query", "header", "form", and "json".
-  The "json" tag will bind from any source, not just a JSON request body.
-  This makes it clear at the endpoint and model definitions where data comes from and
-  how an endpoint is supposed to be called.
-- Path and query param coercion is done from the basic JSON types,
-  depending on the struct field type (int/float, string, bool).
-- Validation is done using the validator package.
-  Custom validators can be registered as we need to express more
-  sophisticated validations.
+  - Data is pulled from path parameters, query parameters, any JSON body,
+    and defaults defined in struct tags. The variable names used for values
+    is specified via the appropriate struct tag.
+    See ParamSource for more details, but possible tags are "path", "query", "header", "form", and "json".
+    The "json" tag will bind from any source, not just a JSON request body.
+    This makes it clear at the endpoint and model definitions where data comes from and
+    how an endpoint is supposed to be called.
+  - Path and query param coercion is done from the basic JSON types,
+    depending on the struct field type (int/float, string, bool).
+  - Validation is done using the validator package.
+    Custom validators can be registered as we need to express more
+    sophisticated validations.
 
-Validations
+# Validations
 
 See validator for a list of available validators and usage examples.
 
-Adapters
+# Adapters
 
 The only non-obvious prerequisite to using apiparams.BindAndValidate is
 to create a apiparams.Adapter for your HTTP framework of choice.
@@ -125,7 +125,7 @@ chi pulls data out of there to figure out a URL Param, like when chi.URLParam is
 Note again that in general only one of these need to be defined and once per-project
 (or you can put them into a library, whatever floats your boat).
 
-Errors
+# Errors
 
 apiparams.BindAndValidate returns a apiparams.HTTPError. Nil result means no error.
 The HTTPError can be one of various error codes (415, 422, 400, 500)
@@ -136,7 +136,7 @@ parseable-but-invalid value (like a too-high number), or malformed JSON.
 Callers should wrap the result in the appropriate error for their framework,
 or can write the Code and Message to the HTTP response.
 
-Custom Types
+# Custom Types
 
 Custom types can be used in an API by providing a CustomTypeDef and passing it to RegisterCustomType.
 A CustomTypeDef consists of a _defaulter_ and a _parser_.

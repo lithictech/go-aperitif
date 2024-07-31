@@ -91,7 +91,7 @@ Available validators include:
 		(validation will only be done if a value is provided).
 		(Usage: comparenow=hour|gte comparenow=day|lt|opt)
 
-Optional validations
+# Optional validations
 
 Most validators support a way to specify they are optional.
 Usually that is something like providing "opt" as a value, like `intid=opt`,
@@ -100,7 +100,7 @@ See example usages for details.
 
 Nil pointers are generally considered valid. See Pointers section for more details.
 
-Pointers
+# Pointers
 
 If validator is validating a pointer field, it will generally validate the underlying type the same
 as non-pointer fields. The only real difference is that a nil pointer will be considered valid,
@@ -109,15 +109,14 @@ because pointer fields generally specify a value is optional.
 If a nil pointer isn't valid for a pointer field, you can use the "nonzero" validation.
 For example, a nil pointer is acceptable here, even though there is no trailing "|opt" flag:
 
-    type d struct {
-        D *time.Time `json:"d" validate:"comparenow=lte|day"`
-    }
+	type d struct {
+	    D *time.Time `json:"d" validate:"comparenow=lte|day"`
+	}
 
 However, a nil pointer is not acceptable here, because of the "nonzero" validation:
 
-    type d struct {
-        D *time.Time `json:"d" validate:"comparenow=lte|day,nonzero"`
-    }
-
+	type d struct {
+	    D *time.Time `json:"d" validate:"comparenow=lte|day,nonzero"`
+	}
 */
 package validator

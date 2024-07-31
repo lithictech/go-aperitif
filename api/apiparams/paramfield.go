@@ -7,7 +7,9 @@ import (
 
 // ParamSource is a struct tag name that can define where a field is set by.
 // For example, a field of:
-//     Wibble string `path:"wibble"`
+//
+//	Wibble string `path:"wibble"`
+//
 // would be said to have a Source of "path".
 // In general, fields can only be set from their parameter source,
 // so that the Wibble field can only be set from the path and not a query parameter.
@@ -36,7 +38,7 @@ var AllParamSources = []ParamSource{
 // whether via query, path, header, or json/body parameters.
 // For a struct field of:
 //
-//     Field string `header:"x-my-field"`
+//	Field string `header:"x-my-field"`
 //
 // - Name is "x-my-field"
 // - Source is "header"
@@ -51,7 +53,9 @@ type paramField struct {
 // that indicates how the parameter is supposed to be set: its Source (header, query, path, json)
 // the Name used to set the parameter, and a reference back to the parsed StructField.
 // This means parsing the struct field:
-//     Field string `query:"pretty"`
+//
+//	Field string `query:"pretty"`
+//
 // would return a paramField with a Source of "query" and Name of "pretty".
 // This also resolves json field naming rules (like `query:"-"` indicating not to set the field).
 // If no paramField can be parsed (it has no tags, or the tags indicate not to export the field),
