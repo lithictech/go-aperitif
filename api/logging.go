@@ -5,27 +5,23 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/api/apiparams"
 	"github.com/lithictech/go-aperitif/logctx"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"strconv"
 	"time"
 )
 
-func unconfiguredLogger() *logrus.Entry {
-	return logrus.New().WithField("unconfigured_logger", "true")
-}
-
-func Logger(c echo.Context) *logrus.Entry {
-	logger, ok := c.Get(logctx.LoggerKey).(*logrus.Entry)
+func Logger(c echo.Context) *slog.Logger {
+	logger, ok := c.Get(logctx.LoggerKey).(*slog.Logger)
 	if !ok {
-		logger = unconfiguredLogger()
+		logger = logctx.UnconfiguredLogger()
 		logger.Error("No logger configured for request!")
 	}
 	return logger
 }
 
-func SetLogger(c echo.Context, logger *logrus.Entry) {
+func SetLogger(c echo.Context, logger *slog.Logger) {
 	c.Set(logctx.LoggerKey, logger)
 }
 
@@ -37,20 +33,20 @@ type LoggingMiddlwareConfig struct {
 	// If provided, the returned logger is stored in the context
 	// which is eventually passed to the handler.
 	// Use to add additional fields to the logger based on the request.
-	BeforeRequest func(echo.Context, *logrus.Entry) *logrus.Entry
+	BeforeRequest func(echo.Context, *slog.Logger) *slog.Logger
 	// If provided, the returned logger is used for response logging.
 	// Use to add additional fields to the logger based on the request or response.
-	AfterRequest func(echo.Context, *logrus.Entry) *logrus.Entry
+	AfterRequest func(echo.Context, *slog.Logger) *slog.Logger
 	// The function that does the actual logging.
 	// By default, it will log at a certain level based on the status code of the response.
-	DoLog func(echo.Context, *logrus.Entry)
+	DoLog func(echo.Context, *slog.Logger)
 }
 
-func LoggingMiddleware(outerLogger *logrus.Entry) echo.MiddlewareFunc {
+func LoggingMiddleware(outerLogger *slog.Logger) echo.MiddlewareFunc {
 	return LoggingMiddlewareWithConfig(outerLogger, LoggingMiddlwareConfig{})
 }
 
-func LoggingMiddlewareWithConfig(outerLogger *logrus.Entry, cfg LoggingMiddlwareConfig) echo.MiddlewareFunc {
+func LoggingMiddlewareWithConfig(outerLogger *slog.Logger, cfg LoggingMiddlwareConfig) echo.MiddlewareFunc {
 	if cfg.DoLog == nil {
 		cfg.DoLog = LoggingMiddlewareDefaultDoLog
 	}
@@ -67,24 +63,24 @@ func LoggingMiddlewareWithConfig(outerLogger *logrus.Entry, cfg LoggingMiddlware
 				bytesIn = "0"
 			}
 
-			logger := outerLogger.WithFields(logrus.Fields{
-				"request_started_at":             start.Format(time.RFC3339),
-				"request_remote_ip":              c.RealIP(),
-				"request_method":                 req.Method,
-				"request_uri":                    req.RequestURI,
-				"request_protocol":               req.Proto,
-				"request_host":                   req.Host,
-				"request_path":                   path,
-				"request_query":                  req.URL.RawQuery,
-				"request_referer":                req.Referer(),
-				"request_user_agent":             req.UserAgent(),
-				"request_bytes_in":               bytesIn,
-				string(logctx.RequestTraceIdKey): TraceId(c),
-			})
+			logger := outerLogger.With(
+				"request_started_at", start.Format(time.RFC3339),
+				"request_remote_ip", c.RealIP(),
+				"request_method", req.Method,
+				"request_uri", req.RequestURI,
+				"request_protocol", req.Proto,
+				"request_host", req.Host,
+				"request_path", path,
+				"request_query", req.URL.RawQuery,
+				"request_referer", req.Referer(),
+				"request_user_agent", req.UserAgent(),
+				"request_bytes_in", bytesIn,
+				string(logctx.RequestTraceIdKey), TraceId(c),
+			)
 			if cfg.RequestHeaders {
 				for k, v := range req.Header {
 					if len(v) > 0 && k != "Authorization" && k != "Cookie" {
-						logger = logger.WithField("request_header."+k, v[0])
+						logger = logger.With("request_header."+k, v[0])
 					}
 				}
 			}
@@ -103,21 +99,21 @@ func LoggingMiddlewareWithConfig(outerLogger *logrus.Entry, cfg LoggingMiddlware
 			stop := time.Now()
 			res := c.Response()
 
-			logger = Logger(c).WithFields(logrus.Fields{
-				"request_finished_at": stop.Format(time.RFC3339),
-				"request_status":      res.Status,
-				"request_latency_ms":  int(stop.Sub(start)) / 1000 / 1000,
-				"request_bytes_out":   strconv.FormatInt(res.Size, 10),
-			})
+			logger = Logger(c).With(
+				"request_finished_at", stop.Format(time.RFC3339),
+				"request_status", res.Status,
+				"request_latency_ms", int(stop.Sub(start))/1000/1000,
+				"request_bytes_out", strconv.FormatInt(res.Size, 10),
+			)
 			if cfg.ResponseHeaders {
 				for k, v := range res.Header() {
 					if len(v) > 0 && k != "Set-Cookie" {
-						logger = logger.WithField("response_header."+k, v[0])
+						logger = logger.With("response_header."+k, v[0])
 					}
 				}
 			}
 			if err != nil {
-				logger = logger.WithField("request_error", err)
+				logger = logger.With("request_error", err)
 			}
 			if cfg.BeforeRequest != nil {
 				logger = cfg.AfterRequest(c, logger)
@@ -129,7 +125,7 @@ func LoggingMiddlewareWithConfig(outerLogger *logrus.Entry, cfg LoggingMiddlware
 	}
 }
 
-func LoggingMiddlewareDefaultDoLog(c echo.Context, logger *logrus.Entry) {
+func LoggingMiddlewareDefaultDoLog(c echo.Context, logger *slog.Logger) {
 	req := c.Request()
 	res := c.Response()
 	logMethod := logger.Info
@@ -149,7 +145,7 @@ func LoggingMiddlewareDefaultDoLog(c echo.Context, logger *logrus.Entry) {
 // so that if it panics, we can recover from it and pass on a 500.
 // Use the "named return parameter can be set in defer" trick so we can
 // return the error we create from the panic.
-func safeInvokeNext(logger *logrus.Entry, next echo.HandlerFunc, c echo.Context) (err error) {
+func safeInvokeNext(logger *slog.Logger, next echo.HandlerFunc, c echo.Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -159,10 +155,10 @@ func safeInvokeNext(logger *logrus.Entry, next echo.HandlerFunc, c echo.Context)
 			}
 			stack := make([]byte, 4<<10) // 4kb
 			length := runtime.Stack(stack, true)
-			logger.WithFields(logrus.Fields{
-				"error": err,
-				"stack": string(stack[:length]),
-			}).Error("panic_recover")
+			logger.With(
+				"error", err,
+				"stack", string(stack[:length]),
+			).Error("panic_recover")
 		}
 	}()
 	err = next(c)
@@ -189,12 +185,6 @@ func adaptToError(e error) error {
 	return NewInternalError(e)
 }
 
-// Deprecated: Use NewHTTPErrorHandler instead.
-func HTTPErrorHandler(err error, c echo.Context) {
-	e := echo.New()
-	NewHTTPErrorHandler(e)(err, c)
-}
-
 func NewHTTPErrorHandler(e *echo.Echo) echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
 		apiErr, ok := err.(Error)
@@ -211,7 +201,7 @@ func NewHTTPErrorHandler(e *echo.Echo) echo.HTTPErrorHandler {
 				err = c.JSON(apiErr.HTTPStatus, apiErr)
 			}
 			if err != nil {
-				Logger(c).WithField("error", err).Error("http_error_handler_error")
+				Logger(c).With("error", err).Error("http_error_handler_error")
 			}
 		}
 	}

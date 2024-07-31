@@ -1,12 +1,12 @@
 /*
-Package api is a standalone API package/pattern built on echo and logrus.
+Package api is a standalone API package/pattern built on echo.
 It sets up /statusz and /healthz endpoints,
 and sets up logging middleware that takes care of the following important,
 and fundamentally (in Go) interconnected tasks:
 
   - Extract (or add) a trace ID header to the request and response.
   - The trace ID can be retrieved through api.TraceID(context) of the echo.Context for the request.
-  - Use that trace ID header as context for the logrus logger.
+  - Use that trace ID header as context for the logger.
   - Handle request logging (metadata about the request and response,
     and log at the level appropriate for the status code).
   - The request logger can be retrieved api.Logger(echo.Context).
@@ -19,7 +19,8 @@ package api
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/sirupsen/logrus"
+	"github.com/lithictech/go-aperitif/logctx"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -27,7 +28,7 @@ import (
 type Config struct {
 	// If not provided, create an echo.New.
 	App                    *echo.Echo
-	Logger                 *logrus.Entry
+	Logger                 *slog.Logger
 	LoggingMiddlwareConfig LoggingMiddlwareConfig
 	// Origins for echo's CORS middleware.
 	// If it and CorsConfig are empty, do not add the middleware.
@@ -57,7 +58,7 @@ type Config struct {
 
 func New(cfg Config) *echo.Echo {
 	if cfg.Logger == nil {
-		cfg.Logger = unconfiguredLogger()
+		cfg.Logger = logctx.UnconfiguredLogger()
 	}
 	if cfg.HealthHandler == nil {
 		if cfg.HealthResponse == nil {

@@ -3,9 +3,10 @@ package logctx
 import (
 	"context"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/phsym/console-slog"
 	"golang.org/x/crypto/ssh/terminal"
+	"io"
+	"log/slog"
 	"os"
 )
 
@@ -25,13 +26,13 @@ const ProcessTraceIdKey TraceIdKey = "process_trace_id"
 // MissingTraceIdKey is the key that will be present to indicate tracing is misconfigured.
 const MissingTraceIdKey TraceIdKey = "missing_trace_id"
 
-func unconfiguredLogger() *logrus.Entry {
-	return logrus.New().WithField("unconfigured_logger", "true")
+func UnconfiguredLogger() *slog.Logger {
+	return slog.Default().With("unconfigured_logger", "true")
 }
 
 // WithLogger returns a new context that adds a logger which
 // can be retrieved with Logger(Context).
-func WithLogger(c context.Context, logger *logrus.Entry) context.Context {
+func WithLogger(c context.Context, logger *slog.Logger) context.Context {
 	return context.WithValue(c, LoggerKey, logger)
 }
 
@@ -43,7 +44,7 @@ func WithLogger(c context.Context, logger *logrus.Entry) context.Context {
 func WithTracingLogger(c context.Context) context.Context {
 	logger := Logger(c)
 	tkey, trace := ActiveTraceId(c)
-	logger = logger.WithField(string(tkey), trace)
+	logger = logger.With(string(tkey), trace)
 	return context.WithValue(c, LoggerKey, logger)
 }
 
@@ -51,16 +52,16 @@ func WithTraceId(c context.Context, key TraceIdKey) context.Context {
 	return context.WithValue(c, key, uuid.New().String())
 }
 
-func LoggerOrNil(c context.Context) *logrus.Entry {
-	logger, _ := c.Value(LoggerKey).(*logrus.Entry)
+func LoggerOrNil(c context.Context) *slog.Logger {
+	logger, _ := c.Value(LoggerKey).(*slog.Logger)
 	return logger
 }
 
-func Logger(c context.Context) *logrus.Entry {
-	if logger, ok := c.Value(LoggerKey).(*logrus.Entry); ok {
+func Logger(c context.Context) *slog.Logger {
+	if logger, ok := c.Value(LoggerKey).(*slog.Logger); ok {
 		return logger
 	}
-	logger := unconfiguredLogger()
+	logger := UnconfiguredLogger()
 	logger.Warn(
 		"Logger called with no logger in context. " +
 			"It should always be there to ensure consistent logs from a single logger")
@@ -88,23 +89,15 @@ func ActiveTraceIdValue(c context.Context) string {
 	return v
 }
 
-func AddFieldsAndGet(c context.Context, fields map[string]interface{}) (context.Context, *logrus.Entry) {
-	logger := Logger(c)
-	logger = logger.WithFields(fields)
-	return WithLogger(c, logger), logger
-}
-
-func AddFieldAndGet(c context.Context, key string, value interface{}) (context.Context, *logrus.Entry) {
-	return AddFieldsAndGet(c, map[string]interface{}{key: value})
-}
-
-func AddFields(c context.Context, fields map[string]interface{}) context.Context {
-	ctx, _ := AddFieldsAndGet(c, fields)
+func AddTo(c context.Context, args ...any) context.Context {
+	ctx, _ := AddToR(c, args...)
 	return ctx
 }
 
-func AddField(c context.Context, key string, value interface{}) context.Context {
-	return AddFields(c, map[string]interface{}{key: value})
+func AddToR(c context.Context, args ...any) (context.Context, *slog.Logger) {
+	logger := Logger(c)
+	logger = logger.With(args...)
+	return WithLogger(c, logger), logger
 }
 
 type NewLoggerInput struct {
@@ -113,56 +106,58 @@ type NewLoggerInput struct {
 	File      string
 	BuildSha  string
 	BuildTime string
-	Fields    logrus.Fields
+	Fields    []any
 }
 
-func NewLogger(cfg NewLoggerInput) (*logrus.Entry, error) {
-	logger := logrus.New()
-
-	// Parse and set level
-	lvl, err := logrus.ParseLevel(cfg.Level)
-	if err != nil {
-		return nil, err
-	}
-	logger.SetLevel(lvl)
-
-	// Set format
-	if cfg.Format == "json" {
-		logger.SetFormatter(&logrus.JSONFormatter{})
-	} else if cfg.Format == "text" {
-		logger.SetFormatter(&logrus.TextFormatter{})
-	} else if cfg.File != "" {
-		logger.SetFormatter(&logrus.JSONFormatter{})
-	} else if IsTty() {
-		logger.SetFormatter(&logrus.TextFormatter{})
-	} else {
-		logger.SetFormatter(&logrus.JSONFormatter{})
-	}
-
+func NewLogger(cfg NewLoggerInput) (*slog.Logger, error) {
 	// Set output to file or stdout/stderr (stderr for tty, stdout otherwise like for 12 factor apps)
+	var out io.Writer
 	if cfg.File != "" {
 		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
-		logger.SetOutput(file)
+		out = file
 	} else if IsTty() {
-		logger.SetOutput(os.Stderr)
+		out = os.Stderr
 	} else {
-		logger.SetOutput(os.Stdout)
+		out = os.Stdout
 	}
 
-	entry := logger.WithFields(nil)
+	hopts := &slog.HandlerOptions{}
+	lvl, err := ParseLevel(cfg.Level)
+	if err != nil {
+		return nil, err
+	}
+	hopts.Level = lvl
+
+	var handler slog.Handler
+	if cfg.Format == "json" {
+		handler = slog.NewJSONHandler(out, hopts)
+	} else if cfg.Format == "text" {
+		handler = slog.NewTextHandler(out, hopts)
+	} else if cfg.File != "" {
+		handler = slog.NewJSONHandler(out, hopts)
+	} else if IsTty() {
+		handler = console.NewHandler(out, &console.HandlerOptions{
+			AddSource: hopts.AddSource,
+			Level:     hopts.Level,
+		})
+	} else {
+		handler = slog.NewJSONHandler(out, hopts)
+	}
+
+	logger := slog.New(handler)
 	if len(cfg.Fields) > 0 {
-		entry = logger.WithFields(cfg.Fields)
+		logger = logger.With(cfg.Fields...)
 	}
 	if cfg.BuildSha != "" {
-		entry = entry.WithField("build_sha", cfg.BuildSha)
+		logger = logger.With("build_sha", cfg.BuildSha)
 	}
 	if cfg.BuildTime != "" {
-		entry = entry.WithField("build_time", cfg.BuildTime)
+		logger = logger.With("build_time", cfg.BuildTime)
 	}
-	return entry, nil
+	return logger, nil
 }
 
 func IsTty() bool {
@@ -171,12 +166,25 @@ func IsTty() bool {
 
 // WithNullLogger adds the logger from test.NewNullLogger into the given context
 // (default c to context.Background). Use the hook to get the log messages.
-// See https://github.com/sirupsen/logrus#testing for testing with logrus.
-func WithNullLogger(c context.Context) (context.Context, *test.Hook) {
+// See https://github.com/sirupsen/logrus#testing for examples,
+// though this doesn't use logrus the ideas still apply.
+func WithNullLogger(c context.Context) (context.Context, *Hook) {
 	if c == nil {
 		c = context.Background()
 	}
-	logger, hook := test.NewNullLogger()
-	c2 := WithLogger(c, logger.WithField("testlogger", true))
+	logger, hook := NewNullLogger()
+	c2 := WithLogger(c, logger.With("testlogger", true))
 	return c2, hook
+}
+
+func ParseLevel(s string) (slog.Level, error) {
+	var level slog.Level
+	var err = level.UnmarshalText([]byte(s))
+	return level, err
+}
+
+func NewNullLogger() (*slog.Logger, *Hook) {
+	hook := NewHook()
+	logger := slog.New(hook)
+	return logger, hook
 }

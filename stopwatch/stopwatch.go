@@ -10,27 +10,28 @@ since they can have vastly different timings
 package stopwatch
 
 import (
-	"github.com/sirupsen/logrus"
+	"context"
+	"log/slog"
 	"time"
 )
 
 type Stopwatch struct {
 	start     time.Time
 	operation string
-	logger    *logrus.Entry
+	logger    *slog.Logger
 }
 
 type StartOpts struct {
 	Key   string
-	Level logrus.Level
+	Level slog.Level
 }
 
-func StartWith(logger *logrus.Entry, operation string, opts StartOpts) *Stopwatch {
+func StartWith(ctx context.Context, logger *slog.Logger, operation string, opts StartOpts) *Stopwatch {
 	if opts.Key == "" {
 		opts.Key = "_started"
 	}
 	if opts.Level == 0 {
-		opts.Level = logrus.DebugLevel
+		opts.Level = slog.LevelDebug
 	}
 	sw := &Stopwatch{
 		start:     time.Now(),
@@ -38,23 +39,23 @@ func StartWith(logger *logrus.Entry, operation string, opts StartOpts) *Stopwatc
 		logger:    logger,
 	}
 
-	sw.logger.Log(opts.Level, operation+opts.Key)
+	sw.logger.Log(ctx, opts.Level, operation+opts.Key)
 	return sw
 }
 
-func Start(logger *logrus.Entry, operation string) *Stopwatch {
-	return StartWith(logger, operation, StartOpts{})
+func Start(ctx context.Context, logger *slog.Logger, operation string) *Stopwatch {
+	return StartWith(ctx, logger, operation, StartOpts{})
 }
 
 type FinishOpts struct {
-	Logger       *logrus.Entry
+	Logger       *slog.Logger
 	Key          string
 	ElapsedKey   string
 	Milliseconds bool
-	Level        logrus.Level
+	Level        slog.Level
 }
 
-func (sw *Stopwatch) FinishWith(opts FinishOpts) {
+func (sw *Stopwatch) FinishWith(ctx context.Context, opts FinishOpts) {
 	if opts.Key == "" {
 		opts.Key = "_finished"
 	}
@@ -62,27 +63,27 @@ func (sw *Stopwatch) FinishWith(opts FinishOpts) {
 		opts.ElapsedKey = "elapsed"
 	}
 	if opts.Level == 0 {
-		opts.Level = logrus.InfoLevel
+		opts.Level = slog.LevelInfo
 	}
 	if opts.Logger == nil {
 		opts.Logger = sw.logger
 	}
 	logger := opts.Logger
 	if opts.Milliseconds {
-		logger = logger.WithField(opts.ElapsedKey, time.Since(sw.start).Milliseconds())
+		logger = logger.With(opts.ElapsedKey, time.Since(sw.start).Milliseconds())
 	} else {
-		logger = logger.WithField(opts.ElapsedKey, time.Since(sw.start).Seconds())
+		logger = logger.With(opts.ElapsedKey, time.Since(sw.start).Seconds())
 	}
-	logger.Log(opts.Level, sw.operation+opts.Key)
+	logger.Log(ctx, opts.Level, sw.operation+opts.Key)
 }
 
-func (sw *Stopwatch) Finish() {
-	sw.FinishWith(FinishOpts{})
+func (sw *Stopwatch) Finish(ctx context.Context) {
+	sw.FinishWith(ctx, FinishOpts{})
 }
 
 type LapOpts FinishOpts
 
-func (sw *Stopwatch) LapWith(opts LapOpts) {
+func (sw *Stopwatch) LapWith(ctx context.Context, opts LapOpts) {
 	if opts.Key == "" {
 		opts.Key = "_lap"
 	}
@@ -90,14 +91,14 @@ func (sw *Stopwatch) LapWith(opts LapOpts) {
 		opts.ElapsedKey = "elapsed"
 	}
 	if opts.Level == 0 {
-		opts.Level = logrus.InfoLevel
+		opts.Level = slog.LevelInfo
 	}
 	if opts.Logger == nil {
 		opts.Logger = sw.logger
 	}
-	sw.FinishWith(FinishOpts(opts))
+	sw.FinishWith(ctx, FinishOpts(opts))
 }
 
-func (sw *Stopwatch) Lap() {
-	sw.LapWith(LapOpts{})
+func (sw *Stopwatch) Lap(ctx context.Context) {
+	sw.LapWith(ctx, LapOpts{})
 }
