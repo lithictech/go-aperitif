@@ -34,7 +34,12 @@ func (t *Hook) Enabled(context.Context, slog.Level) bool {
 }
 
 func (t *Hook) Handle(_ context.Context, r slog.Record) error {
-	t.records.Add(HookRecord{Record: r, Attrs: t.attrs, Group: t.group})
+	attrs := t.attrs
+	r.Attrs(func(a slog.Attr) bool {
+		attrs = append(attrs, a)
+		return true
+	})
+	t.records.Add(HookRecord{Record: r, Attrs: attrs, Group: t.group})
 	return nil
 }
 

@@ -10,6 +10,14 @@ import (
 	"os"
 )
 
+type IdProviderT func() string
+
+func DefaultIdProvider() string {
+	return uuid.New().String()
+}
+
+var IdProvider IdProviderT = DefaultIdProvider
+
 const LoggerKey = "logger"
 
 type TraceIdKey string
@@ -25,6 +33,8 @@ const ProcessTraceIdKey TraceIdKey = "process_trace_id"
 
 // MissingTraceIdKey is the key that will be present to indicate tracing is misconfigured.
 const MissingTraceIdKey TraceIdKey = "missing_trace_id"
+
+const SpanIdKey TraceIdKey = "span_id"
 
 func UnconfiguredLogger() *slog.Logger {
 	return slog.Default().With("unconfigured_logger", "true")
@@ -49,7 +59,7 @@ func WithTracingLogger(c context.Context) context.Context {
 }
 
 func WithTraceId(c context.Context, key TraceIdKey) context.Context {
-	return context.WithValue(c, key, uuid.New().String())
+	return context.WithValue(c, key, IdProvider())
 }
 
 func LoggerOrNil(c context.Context) *slog.Logger {
@@ -106,7 +116,14 @@ type NewLoggerInput struct {
 	File      string
 	BuildSha  string
 	BuildTime string
-	Fields    []any
+	// Called with the derived handler options,
+	// and the result of the default handler logic.
+	// Allows the replacement or wrapping of the calculated handler
+	// with a custom handler.
+	// For example, use NewTracingHandler(h) to wrap the handler
+	// in one that will log the span and trace ids in the context.
+	MakeHandler func(*slog.HandlerOptions, slog.Handler) slog.Handler
+	Fields      []any
 }
 
 func NewLogger(cfg NewLoggerInput) (*slog.Logger, error) {
@@ -145,6 +162,9 @@ func NewLogger(cfg NewLoggerInput) (*slog.Logger, error) {
 		})
 	} else {
 		handler = slog.NewJSONHandler(out, hopts)
+	}
+	if cfg.MakeHandler != nil {
+		handler = cfg.MakeHandler(hopts, handler)
 	}
 
 	logger := slog.New(handler)
