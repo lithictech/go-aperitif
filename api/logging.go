@@ -115,7 +115,7 @@ func LoggingMiddlewareWithConfig(outerLogger *slog.Logger, cfg LoggingMiddlwareC
 			if err != nil {
 				logger = logger.With("request_error", err)
 			}
-			if cfg.BeforeRequest != nil {
+			if cfg.AfterRequest != nil {
 				logger = cfg.AfterRequest(c, logger)
 			}
 			cfg.DoLog(c, logger)
