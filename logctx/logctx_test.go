@@ -80,6 +80,15 @@ var _ = Describe("logtools", func() {
 		})
 	})
 
+	Describe("LoggerOrNil", func() {
+		It("returns nil if there is no logger in context", func() {
+			c := context.Background()
+			Expect(logctx.LoggerOrNil(c)).To(BeNil())
+			c = logctx.WithLogger(c, logger)
+			Expect(logctx.LoggerOrNil(c)).To(BeIdenticalTo(logger))
+		})
+	})
+
 	Describe("WithTracingLogger", func() {
 		It("adds a trace id to the logger", func() {
 			c := logctx.WithTracingLogger(logctx.WithTraceId(ctx, logctx.RequestTraceIdKey))
@@ -112,6 +121,25 @@ var _ = Describe("logtools", func() {
 			logctx.Logger(c).Info("hi")
 			Expect(hook.Records()).To(HaveLen(1))
 			Expect(hook.LastRecord().Record.Message).To(Equal("hi"))
+		})
+	})
+
+	Describe("TracingHandler", func() {
+		It("adds span and trace id if available", func() {
+			t := logctx.NewTracingHandler(hook)
+			lg := slog.New(t)
+			lg.InfoContext(ctx, "naked")
+			ctx = context.WithValue(ctx, logctx.JobTraceIdKey, "mytrace")
+			lg.InfoContext(ctx, "withtrace")
+			ctx = context.WithValue(ctx, logctx.SpanIdKey, "myspan")
+			lg.InfoContext(ctx, "withspan")
+			Expect(hook.Records()).To(HaveLen(3))
+			Expect(hook.Records()[0].Record.Message).To(Equal("naked"))
+			Expect(hook.Records()[0].AttrMap()).To(BeEmpty())
+			Expect(hook.Records()[1].Record.Message).To(Equal("withtrace"))
+			Expect(hook.Records()[1].AttrMap()).To(BeEquivalentTo(map[string]any{"trace_id": "mytrace"}))
+			Expect(hook.Records()[2].Record.Message).To(Equal("withspan"))
+			Expect(hook.Records()[2].AttrMap()).To(BeEquivalentTo(map[string]any{"trace_id": "mytrace", "span_id": "myspan"}))
 		})
 	})
 })

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/v2/logctx"
 )
@@ -39,7 +38,7 @@ func TraceId(c echo.Context) string {
 		}
 	}
 
-	newId := uuid.New().String()
+	newId := logctx.IdProvider()
 	c.Set(traceIdKey, newId)
 	c.Response().Header().Set(TraceIdHeader, newId)
 	return newId
