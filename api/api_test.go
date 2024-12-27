@@ -128,11 +128,27 @@ var _ = Describe("API", func() {
 		})
 		It("logs normal requests at info", func() {
 			e.GET("/", func(c echo.Context) error {
+				api.Logger(c).Debug("fromendpoint")
 				return c.String(200, "ok")
 			})
 			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(200))
-			Expect(logHook.Records()).To(HaveLen(1))
-			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelInfo))
+			Expect(logHook.Records()).To(HaveLen(2))
+			Expect(logHook.Records()[0].Record.Level).To(Equal(slog.LevelDebug))
+			Expect(logHook.Records()[0].AttrMap()).ToNot(HaveKey("request_method"))
+			Expect(logHook.Records()[0].AttrMap()).To(HaveKey("trace_id"))
+
+			Expect(logHook.Records()[1].Record.Level).To(Equal(slog.LevelInfo))
+			Expect(logHook.Records()[1].AttrMap()).To(And(
+				HaveKeyWithValue("request_protocol", "HTTP/1.1"),
+				HaveKeyWithValue("request_status", int64(200)),
+				HaveKeyWithValue("request_bytes_out", "2"),
+				HaveKeyWithValue("trace_id", HaveLen(36)),
+				HaveKeyWithValue("request_method", "GET"),
+				HaveKeyWithValue("request_path", "/"),
+				HaveKeyWithValue("request_referer", ""),
+				HaveKeyWithValue("request_bytes_in", "0"),
+				HaveKeyWithValue("request_latency_ms", BeNumerically(">=", 0)),
+			))
 		})
 		It("logs 500+ at error", func() {
 			e.GET("/", func(c echo.Context) error {
@@ -207,6 +223,35 @@ var _ = Describe("API", func() {
 				HaveKeyWithValue("before", BeEquivalentTo(1)),
 				HaveKeyWithValue("after", BeEquivalentTo(2)),
 			))
+		})
+		It("skips logging if AfterRequest returns a null logger", func() {
+			e = api.New(api.Config{
+				Logger: logger,
+				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
+					AfterRequest: func(echo.Context, *slog.Logger) *slog.Logger {
+						return nil
+					},
+				},
+			})
+			e.GET("/", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(200))
+			Expect(logHook.Records()).To(BeEmpty())
+		})
+		It("skips the trace id if configured to skip", func() {
+			e = api.New(api.Config{
+				Logger: logger,
+				LoggingMiddlwareConfig: api.LoggingMiddlwareConfig{
+					SkipTraceAttrs: true,
+				},
+			})
+			e.GET("/", func(c echo.Context) error {
+				return c.String(200, "ok")
+			})
+			Expect(Serve(e, GetRequest("/"))).To(HaveResponseCode(200))
+			Expect(logHook.Records()).To(HaveLen(1))
+			Expect(logHook.Records()[0].AttrMap()).ToNot(HaveKey("trace_id"))
 		})
 	})
 

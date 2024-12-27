@@ -30,6 +30,11 @@ type LoggingMiddlwareConfig struct {
 	RequestHeaders bool
 	// If true, log response headers.
 	ResponseHeaders bool
+	// If true, do not log trace_id to the logs.
+	// Use this when doing your own trace logging, like with logctx.TracingHandler.
+	// Note that the trace ID for the request is still available in the request.
+	SkipTraceAttrs bool
+
 	// If provided, the returned logger is stored in the context
 	// which is eventually passed to the handler.
 	// Use to add additional fields to the logger based on the request.
@@ -63,26 +68,9 @@ func LoggingMiddlewareWithConfig(outerLogger *slog.Logger, cfg LoggingMiddlwareC
 				bytesIn = "0"
 			}
 
-			logger := outerLogger.With(
-				"request_started_at", start.Format(time.RFC3339),
-				"request_remote_ip", c.RealIP(),
-				"request_method", req.Method,
-				"request_uri", req.RequestURI,
-				"request_protocol", req.Proto,
-				"request_host", req.Host,
-				"request_path", path,
-				"request_query", req.URL.RawQuery,
-				"request_referer", req.Referer(),
-				"request_user_agent", req.UserAgent(),
-				"request_bytes_in", bytesIn,
-				string(logctx.RequestTraceIdKey), TraceId(c),
-			)
-			if cfg.RequestHeaders {
-				for k, v := range req.Header {
-					if len(v) > 0 && k != "Authorization" && k != "Cookie" {
-						logger = logger.With("request_header."+k, v[0])
-					}
-				}
+			logger := outerLogger
+			if !cfg.SkipTraceAttrs {
+				logger = logger.With(string(logctx.RequestTraceIdKey), TraceId(c))
 			}
 			if cfg.BeforeRequest != nil {
 				logger = cfg.BeforeRequest(c, logger)
@@ -100,11 +88,30 @@ func LoggingMiddlewareWithConfig(outerLogger *slog.Logger, cfg LoggingMiddlwareC
 			res := c.Response()
 
 			logger = Logger(c).With(
+				"request_started_at", start.Format(time.RFC3339),
+				"request_remote_ip", c.RealIP(),
+				"request_method", req.Method,
+				"request_uri", req.RequestURI,
+				"request_protocol", req.Proto,
+				"request_host", req.Host,
+				"request_path", path,
+				"request_query", req.URL.RawQuery,
+				"request_referer", req.Referer(),
+				"request_user_agent", req.UserAgent(),
+				"request_bytes_in", bytesIn,
+
 				"request_finished_at", stop.Format(time.RFC3339),
 				"request_status", res.Status,
 				"request_latency_ms", int(stop.Sub(start))/1000/1000,
 				"request_bytes_out", strconv.FormatInt(res.Size, 10),
 			)
+			if cfg.RequestHeaders {
+				for k, v := range req.Header {
+					if len(v) > 0 && k != "Authorization" && k != "Cookie" {
+						logger = logger.With("request_header."+k, v[0])
+					}
+				}
+			}
 			if cfg.ResponseHeaders {
 				for k, v := range res.Header() {
 					if len(v) > 0 && k != "Set-Cookie" {
@@ -118,7 +125,9 @@ func LoggingMiddlewareWithConfig(outerLogger *slog.Logger, cfg LoggingMiddlwareC
 			if cfg.AfterRequest != nil {
 				logger = cfg.AfterRequest(c, logger)
 			}
-			cfg.DoLog(c, logger)
+			if logger != nil {
+				cfg.DoLog(c, logger)
+			}
 			// c.Error is already called
 			return nil
 		}
