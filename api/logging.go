@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/lithictech/go-aperitif/v2/api/apiparams"
@@ -178,15 +179,18 @@ func adaptToError(e error) error {
 	if e == nil {
 		return nil
 	}
-	if apiErr, ok := e.(Error); ok {
+	var apiErr Error
+	if errors.As(e, &apiErr) {
 		return apiErr
 	}
-	if ee, ok := e.(*echo.HTTPError); ok {
+	var ee *echo.HTTPError
+	if errors.As(e, &ee) {
 		apiErr := NewError(ee.Code, "echo", ee.Internal)
 		apiErr.Message = fmt.Sprintf("%v", ee.Message)
 		return apiErr
 	}
-	if ae, ok := e.(apiparams.HTTPError); ok {
+	var ae apiparams.HTTPError
+	if errors.As(e, &ae) {
 		apiErr := NewError(ae.Code(), "validation", ae)
 		apiErr.Message = ae.Error()
 		return apiErr
@@ -196,15 +200,21 @@ func adaptToError(e error) error {
 
 func NewHTTPErrorHandler(e *echo.Echo) echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
-		apiErr, ok := err.(Error)
-		if !ok {
+		var apiErr Error
+		if ok := errors.As(err, &apiErr); !ok {
 			e.DefaultHTTPErrorHandler(err, c)
 			return
 		}
-		// This is copied from echo's default error handler.
+		// This is based on echo's default error handler,
 		if !c.Response().Committed {
+			// We can have api errors that are using a non-error status code.
+			// We should still return a spec-correct response,
+			// using no body for 204, 304, and HEAD requests.
+			noContent := c.Request().Method == http.MethodHead ||
+				apiErr.HTTPStatus == http.StatusNoContent ||
+				apiErr.HTTPStatus == http.StatusNotModified
 			var err error
-			if c.Request().Method == http.MethodHead {
+			if noContent {
 				err = c.NoContent(apiErr.HTTPStatus)
 			} else {
 				err = c.JSON(apiErr.HTTPStatus, apiErr)

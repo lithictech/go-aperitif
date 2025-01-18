@@ -294,6 +294,33 @@ var _ = Describe("API", func() {
 				HaveKeyWithValue("error_code", BeEquivalentTo("hello_teapot")),
 			)))
 		})
+		It("does not include a body for 204 codes", func() {
+			e.GET("/test", func(c echo.Context) error {
+				return api.NewError(204, "hello_teapot")
+			})
+			req := GetRequest("/test")
+			rr := Serve(e, req)
+			Expect(rr).To(HaveResponseCode(204))
+			Expect(rr.Body.String()).To(BeEmpty())
+		})
+		It("does not include a body for 304 codes", func() {
+			e.GET("/test", func(c echo.Context) error {
+				return api.NewError(204, "hello_teapot")
+			})
+			req := GetRequest("/test")
+			rr := Serve(e, req)
+			Expect(rr).To(HaveResponseCode(204))
+			Expect(rr.Body.String()).To(BeEmpty())
+		})
+		It("does not include a body for HEAD requests", func() {
+			e.HEAD("/test", func(c echo.Context) error {
+				return api.NewError(429, "hello_teapot")
+			})
+			req := NewRequest("HEAD", "/test", nil)
+			rr := Serve(e, req)
+			Expect(rr).To(HaveResponseCode(429))
+			Expect(rr.Body.String()).To(BeEmpty())
+		})
 		It("adapts echo errors", func() {
 			e.GET("/test", func(c echo.Context) error {
 				return echo.NewHTTPError(428, "echo msg")
