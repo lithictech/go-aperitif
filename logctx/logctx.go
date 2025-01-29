@@ -111,11 +111,26 @@ func AddToR(c context.Context, args ...any) (context.Context, *slog.Logger) {
 }
 
 type NewLoggerInput struct {
-	Level     string
-	Format    string
-	File      string
-	BuildSha  string
+	// Level is the logging level name. Should match slog.Level strings
+	// ('debug', 'info', 'warning', 'error').
+	// Case independent.
+	Level string
+	// Format should be empty, 'json' or 'text'.
+	// If empty, use 'json' if File is set, colored text/console if IsTty,
+	// or 'json' otherwise.
+	Format string
+	// File is the filename to log to.
+	File string
+	// Out specifies the stream to log to.
+	// If File is set, log to that file.
+	// If IsTty, log to os.Stderr.
+	// Otherwise, log to os.Stdout.
+	Out io.Writer
+	// BuildSha will add "build_sha" to the logger fields, if not empty.
+	BuildSha string
+	// BuildTime will add "build_time" to the logger fields, it not empty.
 	BuildTime string
+	// MakeHandler can override the slog.Handler assigned to the logger.
 	// Called with the derived handler options,
 	// and the result of the default handler logic.
 	// Allows the replacement or wrapping of the calculated handler
@@ -123,13 +138,16 @@ type NewLoggerInput struct {
 	// For example, use NewTracingHandler(h) to wrap the handler
 	// in one that will log the span and trace ids in the context.
 	MakeHandler func(*slog.HandlerOptions, slog.Handler) slog.Handler
-	Fields      []any
+	// Fields are additional fields to add to the logger.
+	Fields []any
 }
 
 func NewLogger(cfg NewLoggerInput) (*slog.Logger, error) {
 	// Set output to file or stdout/stderr (stderr for tty, stdout otherwise like for 12 factor apps)
 	var out io.Writer
-	if cfg.File != "" {
+	if cfg.Out != nil {
+		out = cfg.Out
+	} else if cfg.File != "" {
 		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
