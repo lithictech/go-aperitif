@@ -71,6 +71,24 @@ var _ = Describe("logtools", func() {
 			Expect(key).To(Equal(logctx.MissingTraceIdKey))
 			Expect(val).To(Equal("no-trace-id-in-context"))
 		})
+		It("can use a value that is a subtype of string", func() {
+			c := context.WithValue(ctx, logctx.JobTraceIdKey, substring("abc"))
+			key, val := logctx.ActiveTraceId(c)
+			Expect(key).To(Equal(logctx.JobTraceIdKey))
+			Expect(val).To(Equal("abc"))
+		})
+		It("can use a value that is a stringer", func() {
+			c := context.WithValue(ctx, logctx.JobTraceIdKey, stringer{s: "abc"})
+			key, val := logctx.ActiveTraceId(c)
+			Expect(key).To(Equal(logctx.JobTraceIdKey))
+			Expect(val).To(Equal("abc"))
+		})
+		It("prepends !BADVALUE- if the value is not string-like", func() {
+			c := context.WithValue(ctx, logctx.JobTraceIdKey, 5)
+			key, val := logctx.ActiveTraceId(c)
+			Expect(key).To(Equal(logctx.JobTraceIdKey))
+			Expect(val).To(Equal("!BADVALUE-5"))
+		})
 	})
 
 	Describe("WithLogger", func() {
@@ -143,3 +161,13 @@ var _ = Describe("logtools", func() {
 		})
 	})
 })
+
+type substring string
+
+type stringer struct {
+	s string
+}
+
+func (s stringer) String() string {
+	return s.s
+}

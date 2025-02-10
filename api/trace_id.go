@@ -24,9 +24,8 @@ var candidateTraceHeaders = []string{
 // Otherwise, generate a new trace id, set the response header trace id and cache it in context.
 func TraceId(c echo.Context) string {
 	traceIdKey := string(logctx.RequestTraceIdKey)
-	idInCtx := c.Get(traceIdKey)
-	if idInCtx != nil {
-		return idInCtx.(string)
+	if idInCtx, ok := logctx.AsString(c.Get(traceIdKey)); ok {
+		return idInCtx
 	}
 
 	for _, header := range candidateTraceHeaders {

@@ -2,12 +2,14 @@ package logctx
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/phsym/console-slog"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"log/slog"
 	"os"
+	"reflect"
 )
 
 type IdProviderT func() string
@@ -80,17 +82,47 @@ func Logger(c context.Context) *slog.Logger {
 
 // ActiveTraceId returns the first valid trace value and type from the given context,
 // or MissingTraceIdKey if there is none.
+// The returned trace value will always be a string; if the value is string-like it'll be used,
+// but if it is not string-like, it will have '!BADVALUE-' prepended.
+// For example, ActiveTraceId(context.WithValue(ctx, RequestTraceIdKey, 5)) would return
+// (RequestTraceIdKey, "!BADVALUE-5").
 func ActiveTraceId(c context.Context) (TraceIdKey, string) {
-	if trace, ok := c.Value(RequestTraceIdKey).(string); ok {
-		return RequestTraceIdKey, trace
+	if tv := c.Value(RequestTraceIdKey); tv != nil {
+		return RequestTraceIdKey, toTraceVal(tv)
 	}
-	if trace, ok := c.Value(JobTraceIdKey).(string); ok {
-		return JobTraceIdKey, trace
+	if tv := c.Value(JobTraceIdKey); tv != nil {
+		return JobTraceIdKey, toTraceVal(tv)
 	}
-	if trace, ok := c.Value(ProcessTraceIdKey).(string); ok {
-		return ProcessTraceIdKey, trace
+	if tv := c.Value(ProcessTraceIdKey); tv != nil {
+		return ProcessTraceIdKey, toTraceVal(tv)
 	}
 	return MissingTraceIdKey, "no-trace-id-in-context"
+}
+
+func toTraceVal(v any) string {
+	s, ok := AsString(v)
+	if ok {
+		return s
+	}
+	return fmt.Sprintf("!BADVALUE-%v", v)
+}
+
+// AsString returns o as a string and true if o is a string,
+// a fmt.Stringer, or a reflect.String kind (subtype of string).
+// Otherwise, return "" and false.
+func AsString(o any) (string, bool) {
+	if o == nil {
+		return "", false
+	} else if s, ok := o.(string); ok {
+		return s, true
+	} else if s, ok := o.(fmt.Stringer); ok {
+		return s.String(), true
+	}
+	r := reflect.ValueOf(o)
+	if r.Kind() == reflect.String {
+		return r.String(), true
+	}
+	return "", false
 }
 
 // ActiveTraceIdValue returns the value part of ActiveTraceId (does not return the TradeIdKey type part).
